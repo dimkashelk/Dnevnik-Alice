@@ -27,12 +27,10 @@ class Dnevnik:
         pprint(json_token)
         try:
             if json_token["type"] == "authorizationFailed":
-                print('No :(')
                 return
         except KeyError:
             pass
         if token.status_code != 200:
-            print('No :(')
             return
         return json_token["accessToken"]
 
