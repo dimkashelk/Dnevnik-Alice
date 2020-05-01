@@ -6,7 +6,7 @@ from dnevnik import Dnevnik
 
 app = Flask(__name__)
 
-logging.basicConfig(level=logging.INFO)
+logging.basicConfig(level=logging.INFO, filename='app.log')
 
 sessionStorage = {}
 
