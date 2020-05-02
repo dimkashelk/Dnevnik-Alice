@@ -2,7 +2,7 @@ from flask import Flask, request
 import logging
 import json
 from data.const import *
-from dnevnik import Dnevnik
+from dnevnik import Dnevnik, DnevnikError
 
 app = Flask(__name__)
 
@@ -56,8 +56,13 @@ def handle_dialog(req, res):
             req['request']['nlu']['tokens'][0].lower() not in rules_ru and \
             req['request']['nlu']['tokens'][1].lower() not in rules_ru:
         dop = req['request']['original_utterance'].split()
-        sessionStorage[user_id]['dnevnik'] = Dnevnik(login=dop[0],
-                                                     password=dop[1])
+        try:
+            sessionStorage[user_id]['dnevnik'] = Dnevnik(login=dop[0],
+                                                         password=dop[1])
+        except DnevnikError as e:
+            res['response']['text'] = str(e)
+            res['response']['ttx'] = str(e).lower()
+            return
         res['response']['text'] = 'Вы авторизовались и я подключена к дневнику!'
         res['response']['ttx'] = 'вы авторизов+ались и я подключена к дневнику'
     elif sessionStorage[user_id]['authorized'] is False and len(req['request']['original_utterance'].split()) == 1 and \

@@ -1,5 +1,8 @@
 import requests
-from pprint import pprint
+
+
+class DnevnikError(Exception):
+    pass
 
 
 class Dnevnik:
@@ -24,13 +27,11 @@ class Dnevnik:
             },
         )
         json_token = token.json()
-        pprint(json_token)
         try:
             if json_token["type"] == "authorizationFailed":
-                return
+                raise DnevnikError('Неверный логин или пароль')
         except KeyError:
             pass
         if token.status_code != 200:
-            return
+            raise DnevnikError('Сервисы дневника временно не доступны')
         return json_token["accessToken"]
-
