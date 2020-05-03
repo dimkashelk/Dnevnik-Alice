@@ -1,4 +1,6 @@
 import requests
+from pprint import pprint
+import datetime
 
 
 class DnevnikError(Exception):
@@ -12,6 +14,7 @@ class DnevnikBase:
         self.host = "https://api.dnevnik.ru/v2/"
         if token is None:
             self.token = self.get_token(login, password)
+        self.session.headers = {"Access-Token": self.token}
 
     def get_token(self, login, password):
         token = self.session.post(
@@ -46,13 +49,16 @@ class DnevnikBase:
             )
             raise DnevnikError(error_text)
         json_response = response.json()
-        if isinstance(json_response, dict):
-            if json_response["type"] == "parameterInvalid":
-                raise DnevnikError(json_response["description"])
-            if json_response["type"] == "apiServerError":
-                raise DnevnikError("Неизвестная ошибка в API, проверьте правильность параметров")
-            if json_response["type"] == "apiUnknownError":
-                raise DnevnikError("Неизвестная ошибка в API, проверьте правильность параметров")
+        try:
+            if isinstance(json_response, dict):
+                if json_response["type"] == "parameterInvalid":
+                    raise DnevnikError(json_response["description"])
+                if json_response["type"] == "apiServerError":
+                    raise DnevnikError("Неизвестная ошибка в API, проверьте правильность параметров")
+                if json_response["type"] == "apiUnknownError":
+                    raise DnevnikError("Неизвестная ошибка в API, проверьте правильность параметров")
+        except KeyError:
+            pass
 
     def get(self, method: str, params=None, **kwargs):
         if params is None:
@@ -89,3 +95,23 @@ class DnevnikAPI(DnevnikBase):
         super().__init__(login, password, token)
         self.login = login
         self.password = password
+
+    def get_school(self):
+        school_id = self.get("schools/person-schools")
+        return school_id
+
+    def get_homework_by_id(self, homework_id: int):
+        homework = self.get(f"users/me/school/homeworks", params={"homeworkId": homework_id})
+        return homework
+
+    def get_school_homework(
+            self,
+            school_id: int,
+            start_time: datetime.datetime = datetime.datetime(year=2020, month=4, day=30),
+            end_time: datetime.datetime = datetime.datetime(year=2020, month=4, day=30),
+    ):
+        homework = self.get(
+            f"users/me/school/{school_id}/homeworks",
+            params={"startDate": start_time, "endDate": end_time},
+        )
+        return homework
