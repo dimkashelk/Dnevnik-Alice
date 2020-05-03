@@ -6,7 +6,7 @@ from dnevnik import DnevnikAPI, DnevnikError
 
 app = Flask(__name__)
 
-logging.basicConfig(level=logging.INFO)
+logging.basicConfig(level=logging.INFO, filename='app.log')
 
 sessionStorage = {}
 
@@ -59,6 +59,7 @@ def handle_dialog(req, res):
     elif sessionStorage[user_id]['authorized']:
         # блок если наш пользователь авторизован, пытаем чего он хочет дальше
         # пока стоит заглушка
+        sessionStorage[user_id]['authorized'] = True
         res['response']['text'] = 'Вы авторизовались и я подключена к дневнику!'
         res['response']['ttx'] = 'вы авторизов+ались и я подключена к дневнику'
     elif sessionStorage[user_id]['authorized'] is False and len(req['request']['original_utterance'].split()) == 2 and \
@@ -69,17 +70,6 @@ def handle_dialog(req, res):
         try:
             sessionStorage[user_id]['dnevnik'] = DnevnikAPI(login=dop[0],
                                                             password=dop[1])
-        except DnevnikError as e:
-            res['response']['text'] = str(e)
-            res['response']['ttx'] = str(e).lower()
-            return
-        res['response']['text'] = 'Вы авторизовались и я подключена к дневнику!'
-        res['response']['ttx'] = 'вы авторизов+ались и я подключена к дневнику'
-    elif sessionStorage[user_id]['authorized'] is False and len(req['request']['original_utterance'].split()) == 1 and \
-            req['request']['original_utterance'].lower() not in rules_ru:
-        # авторизация по токену (я не уверен, что кто-то будет это делать)
-        try:
-            sessionStorage[user_id]['dnevnik'] = DnevnikAPI(token=req['request']['original_utterance'])
         except DnevnikError as e:
             res['response']['text'] = str(e)
             res['response']['ttx'] = str(e).lower()
