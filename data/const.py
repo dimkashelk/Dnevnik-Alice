@@ -1,4 +1,5 @@
-rules_ru = ['авторизация']
+rules_ru = ['авторизация', 'домашнее задание']
 rules_to_en = {
-    'авторизация': 'Authorization'
+    'авторизация': 'authorization',
+    'домашнее задание': 'homework'
 }

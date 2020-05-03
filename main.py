@@ -29,6 +29,7 @@ def main():
 def handle_dialog(req, res):
     user_id = req['session']['user_id']
     if req['session']['new']:
+        # поймали нового пользователя
         sessionStorage[user_id] = {
             'authorized': False
         }
@@ -39,6 +40,7 @@ def handle_dialog(req, res):
         return
     if any(i in req['request']['original_utterance'].lower()
            for i in ['инструкц', 'правила']):
+        # пользователь просит инструкцию
         dop = ''
         for i, val in enumerate(rules_ru):
             dop += f'{i + 1}) {val.title()}\n'
@@ -49,12 +51,20 @@ def handle_dialog(req, res):
                                  'изза их количества пришлось разб+ить их на отдельные катег+ории просто ' \
                                  'выберите из предложенного что вас больше всего интересует'
         res['response']['buttons'] = get_buttons('rules')
+    elif req['request']['original_utterance'].lower() in rules_ru:
+        # пользователь выбрал конкретный пункт правил
+        dop = rules(req['request']['original_utterance'].lower())
+        res['response']['text'] = dop[0]
+        res['response']['ttx'] = dop[1]
     elif sessionStorage[user_id]['authorized']:
+        # блок если наш пользователь авторизован, пытаем чего он хочет дальше
+        # пока стоит заглушка
         res['response']['text'] = 'Вы авторизовались и я подключена к дневнику!'
         res['response']['ttx'] = 'вы авторизов+ались и я подключена к дневнику'
     elif sessionStorage[user_id]['authorized'] is False and len(req['request']['original_utterance'].split()) == 2 and \
             req['request']['original_utterance'].split()[0].lower() not in rules_ru and \
             req['request']['original_utterance'].split()[1].lower() not in rules_ru:
+        # авторизация по логину и паролю
         dop = req['request']['original_utterance'].split()
         try:
             sessionStorage[user_id]['dnevnik'] = DnevnikAPI(login=dop[0],
@@ -67,6 +77,7 @@ def handle_dialog(req, res):
         res['response']['ttx'] = 'вы авторизов+ались и я подключена к дневнику'
     elif sessionStorage[user_id]['authorized'] is False and len(req['request']['original_utterance'].split()) == 1 and \
             req['request']['original_utterance'].lower() not in rules_ru:
+        # авторизация по токену (я не уверен, что кто-то будет это делать)
         try:
             sessionStorage[user_id]['dnevnik'] = DnevnikAPI(token=req['request']['original_utterance'])
         except DnevnikError as e:
@@ -75,10 +86,6 @@ def handle_dialog(req, res):
             return
         res['response']['text'] = 'Вы авторизовались и я подключена к дневнику!'
         res['response']['ttx'] = 'вы авторизов+ались и я подключена к дневнику'
-    elif req['request']['original_utterance'].lower() in rules_ru:
-        dop = rules(req['request']['original_utterance'].lower())
-        res['response']['text'] = dop[0]
-        res['response']['ttx'] = dop[1]
     else:
         res['response']['text'] = 'Я вас не поняла :('
         res['response']['ttx'] = 'я вас не поняла'
