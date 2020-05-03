@@ -1,6 +1,6 @@
 import requests
 from pprint import pprint
-import datetime
+from datetime import datetime, timedelta
 
 
 class DnevnikError(Exception):
@@ -107,8 +107,10 @@ class DnevnikAPI(DnevnikBase):
     def get_school_homework(
             self,
             school_id: int,
-            start_time: datetime.datetime = datetime.datetime(year=2020, month=4, day=30),
-            end_time: datetime.datetime = datetime.datetime(year=2020, month=4, day=30),
+            start_time: datetime = datetime(year=datetime.now().year, month=datetime.now().month,
+                                            day=datetime.now().day) + timedelta(days=1),
+            end_time: datetime = datetime(year=datetime.now().year, month=datetime.now().month,
+                                          day=datetime.now().day) + timedelta(days=1),
     ):
         homework = self.get(
             f"users/me/school/{school_id}/homeworks",
