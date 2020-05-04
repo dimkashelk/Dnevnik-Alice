@@ -64,6 +64,7 @@ def handle_dialog(req, res):
                for i in ['дз', 'домашк', 'домашнее задание', 'задали', 'задание по']) or \
                 sessionStorage[user_id]['homework']:
             sessionStorage[user_id]['homework'] = True
+            subject = get_subject(req['request']['original_utterance'].lower())
             for i in req['request']['nlu']['entities']:
                 if i['type'] == 'YANDEX.DATETIME':
                     if i['value']['day_is_relative']:
@@ -87,8 +88,12 @@ def handle_dialog(req, res):
                             res['response']['tts'] = 'Заданий нет'
                             return
                         dop = 'Вот ваши задания:\n'
-                        for v in homework.keys():
-                            dop += f'{v.capitalize()}: {"; ".join(homework[v])}\n'
+                        if subject is None:
+                            for v in homework.keys():
+                                dop += f'{v.capitalize()}: {"; ".join(homework[v])}\n'
+                        else:
+                            for v in list(filter(lambda x: check_words(x.lower(), subject), homework.keys())):
+                                dop += f'{v.capitalize()}: {"; ".join(homework[v])}\n'
                         res['response']['text'] = dop
                         res['response']['tts'] = 'вот ваши домашние задания'
                         return
@@ -113,8 +118,12 @@ def handle_dialog(req, res):
                             res['response']['tts'] = 'Заданий нет'
                             return
                         dop = 'Вот ваши задания:\n'
-                        for v in homework.keys():
-                            dop += f'{v.capitalize()}: {"; ".join(homework[v])}\n'
+                        if subject is None:
+                            for v in homework.keys():
+                                dop += f'{v.capitalize()}: {"; ".join(homework[v])}\n'
+                        else:
+                            for v in list(filter(lambda x: check_words(x.lower(), subject), homework.keys())):
+                                dop += f'{v.capitalize()}: {"; ".join(homework[v])}\n'
                         res['response']['text'] = dop
                         res['response']['tts'] = 'вот ваши домашние задания'
                         return
@@ -161,6 +170,21 @@ def rules(rul: str):
     with open(f'./data/usage_rules/tts/{rules_to_en[rul]}', encoding='utf-8') as file:
         text.append(file.read())
     return text
+
+
+def get_subject(text):
+    if ' по ' in text:
+        ind = text.split().index('по') + 1
+        return text.split()[ind]
+    return None
+
+
+def check_words(word1, word2):
+    dop = 0
+    for i in range(min(len(word1), len(word2))):
+        if word1[i] == word2[i]:
+            dop += 1
+    return dop >= len(word1) // 2 and dop >= len(word2) // 2
 
 
 if __name__ == '__main__':
