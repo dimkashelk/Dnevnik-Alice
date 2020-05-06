@@ -33,7 +33,6 @@ def handle_dialog(req, res):
         # поймали нового пользователя
         sessionStorage[user_id] = {
             'authorized': False,
-            'homework': False
         }
         res['response']['text'] = 'Привет! Я - твой личный помощник с Дневником. ' \
                                   'Пожалуйста ознакомься с инструкцией, чтобы избежать недопонимай в разговоре'
@@ -61,9 +60,7 @@ def handle_dialog(req, res):
     elif sessionStorage[user_id]['authorized']:
         # блок если наш пользователь авторизован, пытаем чего он хочет дальше
         if any(i in req['request']['original_utterance'].lower()
-               for i in ['дз', 'домашк', 'домашнее задание', 'задали', 'задание по']) or \
-                sessionStorage[user_id]['homework']:
-            sessionStorage[user_id]['homework'] = True
+               for i in ['дз', 'домашк', 'домашнее задание', 'задали', 'задание по']):
             subject = get_subject(req['request']['original_utterance'].lower())
             for i in req['request']['nlu']['entities']:
                 if i['type'] == 'YANDEX.DATETIME':
@@ -130,6 +127,26 @@ def handle_dialog(req, res):
                     else:
                         res['response']['text'] = 'Я вас не поняла :('
                         res['response']['tts'] = 'я вас не поняла'
+        elif any(i in req['request']['original_utterance'].lower()
+                 for i in ['оценки', 'поставили']):
+            subject = get_subject(req['request']['original_utterance'].lower())
+            if any(i in req['request']['original_utterance'].lower()
+                   for i in ['новые', 'последние']):
+                # последние поставленные оценки
+                marks = sessionStorage[user_id]['dnevnik'].get_last_marks(
+                    person_id=sessionStorage[user_id]['person_id'],
+                    group_id=sessionStorage[user_id]['edu_group']
+                )['marks']
+                dop = {}
+                for i in marks:
+                    if i['lesson'] is None:
+                        continue
+                    else:
+                        if i['date'] == datetime.now().strftime('%Y-%'):
+                            pass
+            else:
+                res['response']['text'] = 'Я вас не поняла :('
+                res['response']['tts'] = 'я вас не поняла'
     elif sessionStorage[user_id]['authorized'] is False and \
             len(req['request']['original_utterance'].split()) == 2 and \
             req['request']['original_utterance'].split()[0].lower() not in rules_ru and \
@@ -145,6 +162,11 @@ def handle_dialog(req, res):
             return
         sessionStorage[user_id]['authorized'] = True
         sessionStorage[user_id]['school_id'] = sessionStorage[user_id]['dnevnik'].get_school()[0]['id']
+        sessionStorage[user_id]['edu_group'] = sessionStorage[user_id]['dnevnik'].get_edu_group()[1]
+        sessionStorage[user_id]['person_id'] = sessionStorage[user_id]['dnevnik'].get_info_about_me()['personId']
+        dop = sessionStorage[user_id]['dnevnik'].get_work_types(sessionStorage[user_id]['school_id'])
+        sessionStorage[user_id]['id-subject'] = get_types_work(dop)
+        sessionStorage[user_id]['subject-id'] = get_types_work(dop, subject_id=True)
         res['response']['text'] = 'Вы авторизовались и я подключена к дневнику!'
         res['response']['tts'] = 'вы авторизов+ались и я подключена к дневнику'
     else:
@@ -180,11 +202,23 @@ def get_subject(text):
 
 
 def check_words(word1, word2):
+    # fixme: исправить сравнение двух слов, короче надо придумать что-то новое
     dop = 0
     for i in range(min(len(word1), len(word2))):
         if word1[i] == word2[i]:
             dop += 1
     return dop >= len(word1) // 2 and dop >= len(word2) // 2
+
+
+def get_types_work(req, subject_id=False):
+    dop = {}
+    if not subject_id:
+        for i in req:
+            dop[i['id']] = i['abbr']
+    else:
+        for i in req:
+            dop[i['abbr']] = i['id']
+    return dop
 
 
 if __name__ == '__main__':

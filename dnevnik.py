@@ -126,6 +126,10 @@ class DnevnikAPI(DnevnikBase):
         edu_groups = self.get(f"users/me/edu-groups")
         return edu_groups
 
+    def get_info_about_me(self):
+        info = self.get("users/me")
+        return info
+
     def get_group_marks(self, group_id: int):
         edu_groups_marks = self.get(f"edu-groups/{group_id}/final-marks")
         return edu_groups_marks
@@ -151,3 +155,15 @@ class DnevnikAPI(DnevnikBase):
     def get_person(self, person_id: int):
         memberships = self.get(f"persons/{person_id}")
         return memberships
+
+    def get_lesson(self, lesson_id: int):
+        lesson = self.get(f"lessons/{lesson_id}")
+        return lesson
+
+    def get_last_marks(self, person_id, group_id, **kwargs):
+        marks = self.get(f"persons/{person_id}/group/{group_id}/recentmarks", params=kwargs)
+        return marks
+
+    def get_work_types(self, school_id):
+        types = self.get(f"work-types/{school_id}")
+        return types
