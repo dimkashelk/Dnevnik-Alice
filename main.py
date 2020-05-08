@@ -138,15 +138,240 @@ def handle_dialog(req, res):
                     group_id=sessionStorage[user_id]['edu_group']
                 )['marks']
                 dop = {}
-                for i in marks:
-                    if i['lesson'] is None:
-                        continue
+                if subject is None:
+                    for i in marks:
+                        if i['lesson'] is None:
+                            continue
+                        else:
+                            if datetime.now().strftime('%Y-%m-%d') in i['date']:
+                                dop_subject = sessionStorage[user_id]['id-subject'][i['lesson']]
+                                if dop.get(dop_subject, False):
+                                    dop[dop_subject].append(i['value'])
+                                else:
+                                    dop[dop_subject] = [i['value']]
+                else:
+                    for i in marks:
+                        if i['lesson'] is None:
+                            continue
+                        else:
+                            if datetime.now().strftime('%Y-%m-%d') in i['date']:
+                                dop_subject = sessionStorage[user_id]['id-subject'][i['lesson']]
+                                if not check_words(dop_subject, subject):
+                                    continue
+                                if dop.get(dop_subject, False):
+                                    dop[dop_subject].append(i['value'])
+                                else:
+                                    dop[dop_subject] = [i['value']]
+                if len(dop.keys()):
+                    res['response']['text'] = 'Ваши оценки:\n'
+                    res['response']['tts'] = 'Ваши оценки'
+                    for i in dop.keys():
+                        res['response']['text'] += f'{i.capitalize()} - {", ".join(dop[i])}\n'
+                    return
+                else:
+                    res['response']['text'] = 'За сегодня ничего не поставили :('
+                    res['response']['tts'] = 'За сегодня ничего не поставили'
+                    return
+            for i in req['request']['nlu']['entities']:
+                if i['type'] == 'YANDEX.DATETIME':
+                    if 'year_is_relative' in i['value'].keys():
+                        if not i['value']['year_is_relative']:
+                            if 'month' in i['value'].keys() and 'day' in i['value'].keys():
+                                marks = sessionStorage[user_id]['dnevnik'].get_marks_from_to(
+                                    person_id=sessionStorage[user_id]['person_id'],
+                                    school_id=sessionStorage[user_id]['school_id'],
+                                    from_time=datetime(year=i['value']['year'],
+                                                       month=i['value']['month'],
+                                                       day=i['value']['day'],
+                                                       hour=0,
+                                                       minute=0,
+                                                       second=0),
+                                    to_time=datetime(year=i['value']['year'],
+                                                     month=i['value']['month'],
+                                                     day=i['value']['day'],
+                                                     hour=23,
+                                                     minute=59,
+                                                     second=59)
+                                )
+                                if len(marks):
+                                    dop = {}
+                                    if subject is None:
+                                        for i in marks:
+                                            lesson = sessionStorage[user_id]['dnevnik'].get_lesson(
+                                                i['lesson'])['subject']['name']
+                                            if dop.get(lesson, False):
+                                                dop[lesson].append(i['value'])
+                                            else:
+                                                dop[lesson] = [i['value']]
+                                    else:
+                                        for i in marks:
+                                            lesson = sessionStorage[user_id]['dnevnik'].get_lesson(
+                                                i['lesson'])['subject']['name']
+                                            if check_words(lesson, subject):
+                                                if dop.get(lesson, False):
+                                                    dop[lesson].append(i['value'])
+                                                else:
+                                                    dop[lesson] = [i['value']]
+                                    res['response']['text'] = 'Ваши оценки:\n'
+                                    for i in dop.keys():
+                                        res['response']['text'] += f'{i.capitalize()} - {", ".join(dop[i])}'
+                                    res['response']['tts'] = 'ваши оценки'
+                                    return
+                                else:
+                                    res['response']['text'] = 'Оценок нет :('
+                                    res['response']['tts'] = 'оценок нет'
+                                    return
+                            else:
+                                res['response']['text'] = 'Оценок нет :('
+                                res['response']['tts'] = 'оценок нет'
+                                return
+                    elif 'month_is_relative' in i['value'].keys():
+                        if not i['value']['month_is_relative']:
+                            year = datetime.now().year
+                            date = datetime(year, i['value']['month'], i['value']['day']) + timedelta(days=-1)
+                            marks = sessionStorage[user_id]['dnevnik'].get_marks_from_to(
+                                person_id=sessionStorage[user_id]['person_id'],
+                                school_id=sessionStorage[user_id]['school_id'],
+                                from_time=datetime(year=date.year,
+                                                   month=i['value']['month'],
+                                                   day=i['value']['day'],
+                                                   hour=0,
+                                                   minute=0,
+                                                   second=0),
+                                to_time=datetime(year=date.year,
+                                                 month=i['value']['month'],
+                                                 day=i['value']['day'],
+                                                 hour=23,
+                                                 minute=59,
+                                                 second=59)
+                            )
+                            if len(marks):
+                                dop = {}
+                                if subject is None:
+                                    for i in marks:
+                                        lesson = sessionStorage[user_id]['dnevnik'].get_lesson(
+                                            i['lesson'])['subject']['name']
+                                        if dop.get(lesson, False):
+                                            dop[lesson].append(i['value'])
+                                        else:
+                                            dop[lesson] = [i['value']]
+                                else:
+                                    for i in marks:
+                                        lesson = sessionStorage[user_id]['dnevnik'].get_lesson(
+                                            i['lesson'])['subject']['name']
+                                        if check_words(lesson, subject):
+                                            if dop.get(lesson, False):
+                                                dop[lesson].append(i['value'])
+                                            else:
+                                                dop[lesson] = [i['value']]
+                                res['response']['text'] = 'Ваши оценки:\n'
+                                for i in dop.keys():
+                                    res['response']['text'] += f'{i.capitalize()} - {", ".join(dop[i])}\n'
+                                res['response']['tts'] = 'ваши оценки'
+                                return
+                            else:
+                                res['response']['text'] = 'Оценок нет :('
+                                res['response']['tts'] = 'оценок нет'
+                                return
                     else:
-                        if i['date'] == datetime.now().strftime('%Y-%'):
-                            pass
-            else:
-                res['response']['text'] = 'Я вас не поняла :('
-                res['response']['tts'] = 'я вас не поняла'
+                        if not i['value']['day_is_relative']:
+                            year = datetime.now().year
+                            month = datetime.now().month
+                            marks = sessionStorage[user_id]['dnevnik'].get_marks_from_to(
+                                person_id=sessionStorage[user_id]['person_id'],
+                                school_id=sessionStorage[user_id]['school_id'],
+                                from_time=datetime(year=year,
+                                                   month=month,
+                                                   day=i['value']['day'],
+                                                   hour=0,
+                                                   minute=0,
+                                                   second=0),
+                                to_time=datetime(year=year,
+                                                 month=month,
+                                                 day=i['value']['day'],
+                                                 hour=23,
+                                                 minute=59,
+                                                 second=59)
+                            )
+                            if len(marks):
+                                dop = {}
+                                if subject is None:
+                                    for i in marks:
+                                        lesson = sessionStorage[user_id]['dnevnik'].get_lesson(
+                                            i['lesson'])['subject']['name']
+                                        if dop.get(lesson, False):
+                                            dop[lesson].append(i['value'])
+                                        else:
+                                            dop[lesson] = [i['value']]
+                                else:
+                                    for i in marks:
+                                        lesson = sessionStorage[user_id]['dnevnik'].get_lesson(
+                                            i['lesson'])['subject']['name']
+                                        if check_words(lesson, subject):
+                                            if dop.get(lesson, False):
+                                                dop[lesson].append(i['value'])
+                                            else:
+                                                dop[lesson] = [i['value']]
+                                res['response']['text'] = 'Ваши оценки:\n'
+                                for i in dop.keys():
+                                    res['response']['text'] += f'{i.capitalize()} - {", ".join(dop[i])}'
+                                res['response']['tts'] = 'ваши оценки'
+                                return
+                            else:
+                                res['response']['text'] = 'Оценок нет :('
+                                res['response']['tts'] = 'оценок нет'
+                                return
+                        elif i['value']['day_is_relative']:
+                            year = (datetime.now() + timedelta(days=i['value']['day'])).year
+                            month = (datetime.now() + timedelta(days=i['value']['day'])).month
+                            day = (datetime.now() + timedelta(days=i['value']['day'])).day
+                            marks = sessionStorage[user_id]['dnevnik'].get_marks_from_to(
+                                person_id=sessionStorage[user_id]['person_id'],
+                                school_id=sessionStorage[user_id]['school_id'],
+                                from_time=datetime(year=year,
+                                                   month=month,
+                                                   day=day,
+                                                   hour=0,
+                                                   minute=0,
+                                                   second=0),
+                                to_time=datetime(year=year,
+                                                 month=month,
+                                                 day=day,
+                                                 hour=23,
+                                                 minute=59,
+                                                 second=59)
+                            )
+                            if len(marks):
+                                dop = {}
+                                if subject is None:
+                                    for i in marks:
+                                        lesson = sessionStorage[user_id]['dnevnik'].get_lesson(
+                                            i['lesson'])['subject']['name']
+                                        if dop.get(lesson, False):
+                                            dop[lesson].append(i['value'])
+                                        else:
+                                            dop[lesson] = [i['value']]
+                                else:
+                                    for i in marks:
+                                        lesson = sessionStorage[user_id]['dnevnik'].get_lesson(
+                                            i['lesson'])['subject']['name']
+                                        if check_words(lesson, subject):
+                                            if dop.get(lesson, False):
+                                                dop[lesson].append(i['value'])
+                                            else:
+                                                dop[lesson] = [i['value']]
+                                res['response']['text'] = 'Ваши оценки:\n'
+                                for i in dop.keys():
+                                    res['response']['text'] += f'{i.capitalize()} - {", ".join(dop[i])}'
+                                res['response']['tts'] = 'ваши оценки'
+                                return
+                            else:
+                                res['response']['text'] = 'Оценок нет :('
+                                res['response']['tts'] = 'оценок нет'
+                                return
+            res['response']['text'] = 'Я вас не поняла :('
+            res['response']['tts'] = 'я вас не поняла'
+            return
     elif sessionStorage[user_id]['authorized'] is False and \
             len(req['request']['original_utterance'].split()) == 2 and \
             req['request']['original_utterance'].split()[0].lower() not in rules_ru and \
@@ -162,7 +387,7 @@ def handle_dialog(req, res):
             return
         sessionStorage[user_id]['authorized'] = True
         sessionStorage[user_id]['school_id'] = sessionStorage[user_id]['dnevnik'].get_school()[0]['id']
-        sessionStorage[user_id]['edu_group'] = sessionStorage[user_id]['dnevnik'].get_edu_group()[1]
+        sessionStorage[user_id]['edu_group'] = sessionStorage[user_id]['dnevnik'].get_edu_groups()[1]
         sessionStorage[user_id]['person_id'] = sessionStorage[user_id]['dnevnik'].get_info_about_me()['personId']
         dop = sessionStorage[user_id]['dnevnik'].get_work_types(sessionStorage[user_id]['school_id'])
         sessionStorage[user_id]['id-subject'] = get_types_work(dop)

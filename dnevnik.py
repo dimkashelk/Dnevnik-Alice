@@ -167,3 +167,13 @@ class DnevnikAPI(DnevnikBase):
     def get_work_types(self, school_id):
         types = self.get(f"work-types/{school_id}")
         return types
+
+    def get_marks_from_to(self,
+                          person_id: int,
+                          school_id: int,
+                          from_time: datetime = datetime.now(),
+                          to_time: datetime = datetime.now()):
+        marks = self.get(
+            f"persons/{person_id}/schools/{school_id}/marks/{from_time}/{to_time}"
+        )
+        return marks
