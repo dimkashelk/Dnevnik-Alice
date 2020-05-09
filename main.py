@@ -492,13 +492,20 @@ def get_subjects(req, subject_id=False):
     return dop
 
 
-def get_start_school_year():
+def get_start_school_quater():
     now = datetime.now()
     month = now.month
     year = now.year
-    if month < 9:
-        year -= 1
-    from_time = datetime(year=year, month=9, day=1, hour=0, minute=0, second=0)
+    start_month = month
+    if start_month >= 11:
+        start_month = 11
+    elif start_month >= 9:
+        start_month = 9
+    elif start_month >= 4:
+        start_month = 4
+    else:
+        start_month = 1
+    from_time = datetime(year, start_month, 1)
     return from_time
 
 
@@ -512,7 +519,7 @@ def get_average(marks):
 def get_subject_average_mark(subject_id, user_id):
     # TODO: переписать
     school_id = sessionStorage[user_id]['dnevnik'].get_school()[0]['id']
-    from_time = get_start_school_year()
+    from_time = get_start_school_quater()
     marks = sessionStorage[user_id]['dnevnik'].get_marks_from_to(
         sessionStorage[user_id]['person_id'],
         school_id,
