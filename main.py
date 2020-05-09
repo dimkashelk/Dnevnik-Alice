@@ -55,6 +55,7 @@ def handle_dialog(req, res):
                                   'категории:\n' + dop
         res['response']['tts'] = 'у меня очень много правил но они все маленькие и простые ' \
                                  'изза их количества пришлось разб+ить их на отдельные катег+ории ' \
+                                 '' \
                                  'просто ' \
                                  'выберите из предложенного что вас больше всего интересует'
         res['response']['buttons'] = get_buttons('rules')
@@ -84,6 +85,15 @@ def handle_dialog(req, res):
                 res['response']['text'] = 'Можете уточнить предмет?'
                 res['response']['tts'] = 'можете уточнить предмет'
                 return
+        elif any(i in req['request']['original_utterance'].lower()
+                 for i in ['расписани']) or \
+                sessionStorage[user_id]['schedule']:
+            sessionStorage[user_id]['schedule'] = True
+            schedule = req["days"]["nextDaySchedule"]
+            subj_list = next_schedule(schedule)
+            res['response']['text'] = 'Ваше расписание на завтра: ' + '\n'.join(i for i in
+                                                                                subj_list)
+            res['response']['tts'] = 'ваше расписание на завтра'
         elif any(i in req['request']['original_utterance'].lower()
                  for i in ['дз', 'домашк', 'домашнее задание', 'задали', 'задание по']):
             subject = get_subject(req['request']['original_utterance'].lower())
@@ -479,6 +489,13 @@ def check_words(word1, word2):
         if word1[i] == word2[i]:
             dop += 1
     return dop >= len(word1) // 2 and dop >= len(word2) // 2
+
+
+def next_schedule(schedule):
+    subject_list = []
+    for i in schedule:
+        subject_list.append(i['subjectName'])
+    return subject_list
 
 
 def get_subjects(req, subject_id=False):
