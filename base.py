@@ -1,5 +1,4 @@
 import requests
-from pprint import pprint
 from datetime import datetime, timedelta
 
 
@@ -54,9 +53,11 @@ class DnevnikBase:
                 if json_response["type"] == "parameterInvalid":
                     raise DnevnikError(json_response["description"])
                 if json_response["type"] == "apiServerError":
-                    raise DnevnikError("Неизвестная ошибка в API, проверьте правильность параметров")
+                    raise DnevnikError(
+                        "Неизвестная ошибка в API, проверьте правильность параметров")
                 if json_response["type"] == "apiUnknownError":
-                    raise DnevnikError("Неизвестная ошибка в API, проверьте правильность параметров")
+                    raise DnevnikError(
+                        "Неизвестная ошибка в API, проверьте правильность параметров")
         except KeyError:
             pass
 
@@ -117,3 +118,63 @@ class DnevnikAPI(DnevnikBase):
             params={"startDate": start_time, "endDate": end_time},
         )
         return homework
+
+    def get_all_subjects(self, school_id: int):
+        all_subjects = self.get(f'schools/{school_id}/subjects')
+        return all_subjects
+
+    def get_edu_groups(self):
+        edu_groups = self.get(f"users/me/edu-groups")
+        return edu_groups
+
+    def get_info_about_me(self):
+        info = self.get("users/me")
+        return info
+
+    def get_group_marks(self, group_id: int):
+        edu_groups_marks = self.get(f"edu-groups/{group_id}/final-marks")
+        return edu_groups_marks
+
+    def get_person_group_marks(self, person_id: int, group_id: int):
+        person_marks_in_group = self.get(
+            f"persons/{person_id}/edu-groups/{group_id}/final-marks"
+        )
+        return person_marks_in_group
+
+    def get_person_group_marks_final(self, person_id: int, group_id: int):
+        person_final_marks_in_group = self.get(
+            f"persons/{person_id}/edu-groups/{group_id}/allfinalmarks"
+        )
+        return person_final_marks_in_group
+
+    def get_group_subject_final_marks(self, group_id: int, subject_id: int):
+        group_subject_marks = self.get(
+            f"edu-groups/{group_id}/subjects/{subject_id}/final-marks"
+        )
+        return group_subject_marks
+
+    def get_person(self, person_id: int):
+        memberships = self.get(f"persons/{person_id}")
+        return memberships
+
+    def get_lesson(self, lesson_id: int):
+        lesson = self.get(f"lessons/{lesson_id}")
+        return lesson
+
+    def get_last_marks(self, person_id, group_id, **kwargs):
+        marks = self.get(f"persons/{person_id}/group/{group_id}/recentmarks", params=kwargs)
+        return marks
+
+    def get_work_types(self, school_id):
+        types = self.get(f"work-types/{school_id}")
+        return types
+
+    def get_marks_from_to(self,
+                          person_id: int,
+                          school_id: int,
+                          from_time: datetime = datetime.now(),
+                          to_time: datetime = datetime.now()):
+        marks = self.get(
+            f"persons/{person_id}/schools/{school_id}/marks/{from_time}/{to_time}"
+        )
+        return marks
