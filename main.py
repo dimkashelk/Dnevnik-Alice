@@ -35,9 +35,11 @@ def handle_dialog(req, res):
             'authorized': False,
         }
         res['response']['text'] = 'Привет! Я - твой личный помощник с Дневником. ' \
-                                  'Пожалуйста ознакомься с инструкцией, чтобы избежать недопонимай в разговоре'
+                                  'Пожалуйста ознакомься с инструкцией, чтобы избежать ' \
+                                  'недопонимай в разговоре'
         res['response']['tts'] = 'привет я твой личный помощник с дневником ' \
-                                 'пожалуйста ознакомься с инструкцией чтобы избежать недопоним+аний в разговоре'
+                                 'пожалуйста ознакомься с инструкцией чтобы избежать ' \
+                                 'недопоним+аний в разговоре'
         return
     if any(i in req['request']['original_utterance'].lower()
            for i in ['инструкц', 'правила']):
@@ -47,9 +49,11 @@ def handle_dialog(req, res):
             dop += f'{i + 1}) {val.capitalize()}\n'
         dop = dop.strip()
         res['response']['text'] = 'У меня очень много правил, но они все маленькие и простые. ' \
-                                  'Из-за их количества пришлось разбить их на отдельные категории:\n' + dop
+                                  'Из-за их количества пришлось разбить их на отдельные ' \
+                                  'категории:\n' + dop
         res['response']['tts'] = 'у меня очень много правил но они все маленькие и простые ' \
-                                 'изза их количества пришлось разб+ить их на отдельные катег+ории просто ' \
+                                 'изза их количества пришлось разб+ить их на отдельные катег+ории ' \
+                                 'просто ' \
                                  'выберите из предложенного что вас больше всего интересует'
         res['response']['buttons'] = get_buttons('rules')
     elif req['request']['original_utterance'].lower() in rules_ru:
@@ -58,6 +62,19 @@ def handle_dialog(req, res):
         res['response']['text'] = dop[0]
         res['response']['tts'] = dop[1]
     elif sessionStorage[user_id]['authorized']:
+        if any(i in req['request']['original_utterance'].lower()
+               for i in ['рейтинг', 'мест', 'в классе']) or \
+                sessionStorage[user_id]['rating']:
+            sessionStorage[user_id]['rating'] = True
+            subject = get_subject(req['request']['original_utterance'].lower())
+            if subject:
+                subject_id = sessionStorage[user_id][subject]
+                user_subject_average_mark = get_subject_average_mark(subject_id, user_id)
+                group_subject_average_mark = get_group_subject_average_mark()
+                res['response']['text'] = 'Ваш средний балл по предмету ' + subject + \
+                                          ': ' + user_subject_average_mark + '\n' + \
+                                          'Средний балл класса по предмету ' + subject + \
+                                          ': ' + group_subject_average_mark
         # блок если наш пользователь авторизован, пытаем чего он хочет дальше
         if any(i in req['request']['original_utterance'].lower()
                for i in ['дз', 'домашк', 'домашнее задание', 'задали', 'задание по']):
@@ -69,15 +86,19 @@ def handle_dialog(req, res):
                         year, month, day = now.year, now.month, now.day
                         homeworks = sessionStorage[user_id]['dnevnik'].get_school_homework(
                             school_id=sessionStorage[user_id]['school_id'],
-                            start_time=datetime(year=year, month=month, day=day) + timedelta(days=i['value']['day']),
-                            end_time=datetime(year=year, month=month, day=day) + timedelta(days=i['value']['day'])
+                            start_time=datetime(year=year, month=month, day=day) + timedelta(
+                                days=i['value']['day']),
+                            end_time=datetime(year=year, month=month, day=day) + timedelta(
+                                days=i['value']['day'])
                         )
                         homework = {}
                         for i in homeworks['works']:
                             dop = sessionStorage[user_id]['dnevnik'].get_homework_by_id(i['id'])
                             if dop['subjects'][0]['name'] in homework.keys():
-                                if dop['works'][0]['text'] not in homework[dop['subjects'][0]['name']]:
-                                    homework[dop['subjects'][0]['name']].append(dop['works'][0]['text'])
+                                if dop['works'][0]['text'] not in homework[
+                                    dop['subjects'][0]['name']]:
+                                    homework[dop['subjects'][0]['name']].append(
+                                        dop['works'][0]['text'])
                             else:
                                 homework[dop['subjects'][0]['name']] = [dop['works'][0]['text']]
                         if len(homework.keys()) == 0:
@@ -89,7 +110,8 @@ def handle_dialog(req, res):
                             for v in homework.keys():
                                 dop += f'{v.capitalize()}: {"; ".join(homework[v])}\n'
                         else:
-                            for v in list(filter(lambda x: check_words(x.lower(), subject), homework.keys())):
+                            for v in list(filter(lambda x: check_words(x.lower(), subject),
+                                                 homework.keys())):
                                 dop += f'{v.capitalize()}: {"; ".join(homework[v])}\n'
                         res['response']['text'] = dop
                         res['response']['tts'] = 'вот ваши домашние задания'
@@ -99,15 +121,19 @@ def handle_dialog(req, res):
                         year, month, day = now.year, now.month, now.day
                         homeworks = sessionStorage[user_id]['dnevnik'].get_school_homework(
                             school_id=sessionStorage[user_id]['school_id'],
-                            start_time=datetime(year=year, month=i['value']['month'], day=i['value']['day']),
-                            end_time=datetime(year=year, month=i['value']['month'], day=i['value']['day'])
+                            start_time=datetime(year=year, month=i['value']['month'],
+                                                day=i['value']['day']),
+                            end_time=datetime(year=year, month=i['value']['month'],
+                                              day=i['value']['day'])
                         )
                         homework = {}
                         for i in homeworks['works']:
                             dop = sessionStorage[user_id]['dnevnik'].get_homework_by_id(i['id'])
                             if dop['subjects'][0]['name'] in homework.keys():
-                                if dop['works'][0]['text'] not in homework[dop['subjects'][0]['name']]:
-                                    homework[dop['subjects'][0]['name']].append(dop['works'][0]['text'])
+                                if dop['works'][0]['text'] not in homework[
+                                    dop['subjects'][0]['name']]:
+                                    homework[dop['subjects'][0]['name']].append(
+                                        dop['works'][0]['text'])
                             else:
                                 homework[dop['subjects'][0]['name']] = [dop['works'][0]['text']]
                         if len(homework.keys()) == 0:
@@ -119,7 +145,8 @@ def handle_dialog(req, res):
                             for v in homework.keys():
                                 dop += f'{v.capitalize()}: {"; ".join(homework[v])}\n'
                         else:
-                            for v in list(filter(lambda x: check_words(x.lower(), subject), homework.keys())):
+                            for v in list(filter(lambda x: check_words(x.lower(), subject),
+                                                 homework.keys())):
                                 dop += f'{v.capitalize()}: {"; ".join(homework[v])}\n'
                         res['response']['text'] = dop
                         res['response']['tts'] = 'вот ваши домашние задания'
@@ -214,7 +241,8 @@ def handle_dialog(req, res):
                                                     dop[lesson] = [i['value']]
                                     res['response']['text'] = 'Ваши оценки:\n'
                                     for i in dop.keys():
-                                        res['response']['text'] += f'{i.capitalize()} - {", ".join(dop[i])}'
+                                        res['response'][
+                                            'text'] += f'{i.capitalize()} - {", ".join(dop[i])}'
                                     res['response']['tts'] = 'ваши оценки'
                                     return
                                 else:
@@ -228,7 +256,8 @@ def handle_dialog(req, res):
                     elif 'month_is_relative' in i['value'].keys():
                         if not i['value']['month_is_relative']:
                             year = datetime.now().year
-                            date = datetime(year, i['value']['month'], i['value']['day']) + timedelta(days=-1)
+                            date = datetime(year, i['value']['month'],
+                                            i['value']['day']) + timedelta(days=-1)
                             marks = sessionStorage[user_id]['dnevnik'].get_marks_from_to(
                                 person_id=sessionStorage[user_id]['person_id'],
                                 school_id=sessionStorage[user_id]['school_id'],
@@ -266,7 +295,8 @@ def handle_dialog(req, res):
                                                 dop[lesson] = [i['value']]
                                 res['response']['text'] = 'Ваши оценки:\n'
                                 for i in dop.keys():
-                                    res['response']['text'] += f'{i.capitalize()} - {", ".join(dop[i])}\n'
+                                    res['response'][
+                                        'text'] += f'{i.capitalize()} - {", ".join(dop[i])}\n'
                                 res['response']['tts'] = 'ваши оценки'
                                 return
                             else:
@@ -314,7 +344,8 @@ def handle_dialog(req, res):
                                                 dop[lesson] = [i['value']]
                                 res['response']['text'] = 'Ваши оценки:\n'
                                 for i in dop.keys():
-                                    res['response']['text'] += f'{i.capitalize()} - {", ".join(dop[i])}'
+                                    res['response'][
+                                        'text'] += f'{i.capitalize()} - {", ".join(dop[i])}'
                                 res['response']['tts'] = 'ваши оценки'
                                 return
                             else:
@@ -362,7 +393,8 @@ def handle_dialog(req, res):
                                                 dop[lesson] = [i['value']]
                                 res['response']['text'] = 'Ваши оценки:\n'
                                 for i in dop.keys():
-                                    res['response']['text'] += f'{i.capitalize()} - {", ".join(dop[i])}'
+                                    res['response'][
+                                        'text'] += f'{i.capitalize()} - {", ".join(dop[i])}'
                                 res['response']['tts'] = 'ваши оценки'
                                 return
                             else:
@@ -386,10 +418,14 @@ def handle_dialog(req, res):
             res['response']['tts'] = str(e).lower()
             return
         sessionStorage[user_id]['authorized'] = True
-        sessionStorage[user_id]['school_id'] = sessionStorage[user_id]['dnevnik'].get_school()[0]['id']
-        sessionStorage[user_id]['edu_group'] = sessionStorage[user_id]['dnevnik'].get_edu_groups()[1]
-        sessionStorage[user_id]['person_id'] = sessionStorage[user_id]['dnevnik'].get_info_about_me()['personId']
-        dop = sessionStorage[user_id]['dnevnik'].get_work_types(sessionStorage[user_id]['school_id'])
+        sessionStorage[user_id]['school_id'] = sessionStorage[user_id]['dnevnik'].get_school()[0][
+            'id']
+        sessionStorage[user_id]['edu_group'] = sessionStorage[user_id]['dnevnik'].get_edu_groups()[
+            1]
+        sessionStorage[user_id]['person_id'] = \
+        sessionStorage[user_id]['dnevnik'].get_info_about_me()['personId']
+        dop = sessionStorage[user_id]['dnevnik'].get_work_types(
+            sessionStorage[user_id]['school_id'])
         sessionStorage[user_id]['id-subject'] = get_types_work(dop)
         sessionStorage[user_id]['subject-id'] = get_types_work(dop, subject_id=True)
         res['response']['text'] = 'Вы авторизовались и я подключена к дневнику!'
@@ -444,6 +480,37 @@ def get_types_work(req, subject_id=False):
         for i in req:
             dop[i['abbr']] = i['id']
     return dop
+
+
+def get_start_school_year():
+    now = datetime.now()
+    month = now.month
+    year = now.year
+    if month < 9:
+        year -= 1
+    from_time = datetime(year, 9, 1)
+    return from_time
+
+
+def get_average(marks):
+    marks_number = len(marks)
+    marks_sum = sum(marks)
+    average = round(marks_sum / marks_number, 2)
+    return average
+
+
+def get_subject_average_mark(subject_id, user_id):
+    school_id = DnevnikAPI.get_school
+    from_time = get_start_school_year()
+    marks = DnevnikAPI.get_marks_from_to(user_id, school_id, from_time)
+    subject_marks = sessionStorage[marks][subject_id]
+    return get_average(subject_marks)
+
+
+def get_group_subject_average_mark():
+    group_id = DnevnikAPI.get_edu_groups()[1]
+    subject_marks = DnevnikAPI.get_group_marks(group_id)
+    return get_average(subject_marks)
 
 
 if __name__ == '__main__':
