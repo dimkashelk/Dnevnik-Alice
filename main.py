@@ -29,7 +29,7 @@ def main():
 
 def handle_dialog(req, res):
     user_id = req['session']['user_id']
-    if req['session']['new']:
+    if req['session']['new'] :
         # поймали нового пользователя
         sessionStorage[user_id] = {
             'authorized': False,
@@ -75,6 +75,13 @@ def handle_dialog(req, res):
                                           ': ' + user_subject_average_mark + '\n' + \
                                           'Средний балл класса по предмету ' + subject + \
                                           ': ' + group_subject_average_mark
+        if any(i in req['request']['original_utterance'].lower()
+               for i in ['расписани']):
+            schedule = req["days"]["nextDaySchedule"]
+            tomorrow_subjects = ''
+            for i in schedule:
+                tomorrow_subjects += i['subjectName'].key()
+
         # блок если наш пользователь авторизован, пытаем чего он хочет дальше
         if any(i in req['request']['original_utterance'].lower()
                for i in ['дз', 'домашк', 'домашнее задание', 'задали', 'задание по']):
@@ -482,13 +489,20 @@ def get_types_work(req, subject_id=False):
     return dop
 
 
-def get_start_school_year():
+def get_start_school_quater():
     now = datetime.now()
     month = now.month
     year = now.year
-    if month < 9:
-        year -= 1
-    from_time = datetime(year, 9, 1)
+    start_month = month
+    if start_month >= 11:
+        start_month = 11
+    elif start_month >= 9:
+        start_month = 9
+    elif start_month >= 4:
+        start_month = 4
+    else:
+        start_month = 1
+    from_time = datetime(year, start_month, 1)
     return from_time
 
 
@@ -501,7 +515,7 @@ def get_average(marks):
 
 def get_subject_average_mark(subject_id, user_id):
     school_id = DnevnikAPI.get_school
-    from_time = get_start_school_year()
+    from_time = get_start_school_quater()
     marks = DnevnikAPI.get_marks_from_to(user_id, school_id, from_time)
     subject_marks = sessionStorage[marks][subject_id]
     return get_average(subject_marks)

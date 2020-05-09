@@ -178,3 +178,4 @@ class DnevnikAPI(DnevnikBase):
             f"persons/{person_id}/schools/{school_id}/marks/{from_time}/{to_time}"
         )
         return marks
+
