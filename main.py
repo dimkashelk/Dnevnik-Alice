@@ -56,6 +56,8 @@ def handle_dialog(req, res):
         res['response']['tts'] = 'у меня очень много правил но они все маленькие и простые ' \
                                  'изза их количества пришлось разб+ить их на отдельные катег+ории ' \
                                  '' \
+                                 '' \
+                                 '' \
                                  'просто ' \
                                  'выберите из предложенного что вас больше всего интересует'
         res['response']['buttons'] = get_buttons('rules')
@@ -67,26 +69,7 @@ def handle_dialog(req, res):
     elif sessionStorage[user_id]['authorized']:
         # блок если наш пользователь авторизован, пытаем чего он хочет дальше
         if any(i in req['request']['original_utterance'].lower()
-               for i in ['рейтинг', 'мест', 'в классе']) or \
-                sessionStorage[user_id]['rating']:
-            sessionStorage[user_id]['rating'] = True
-            subject = get_subject(req['request']['original_utterance'].lower())
-            if subject:
-                subject_id = sessionStorage[user_id]['subject-id'][subject]
-                user_subject_average_mark = get_subject_average_mark(subject_id, user_id)
-                group_subject_average_mark = get_group_subject_average_mark(user_id)
-                res['response']['text'] = 'Ваш средний балл по предмету ' + subject + \
-                                          ': ' + user_subject_average_mark + '\n' + \
-                                          'Средний балл класса по предмету ' + subject + \
-                                          ': ' + group_subject_average_mark
-                res['response']['tts'] = 'ваш рейтинг'
-                return
-            else:
-                res['response']['text'] = 'Можете уточнить предмет?'
-                res['response']['tts'] = 'можете уточнить предмет'
-                return
-        elif any(i in req['request']['original_utterance'].lower()
-                 for i in ['расписани']) or \
+               for i in ['расписани']) or \
                 sessionStorage[user_id]['schedule']:
             sessionStorage[user_id]['schedule'] = True
             schedule = req["days"]["nextDaySchedule"]
@@ -507,52 +490,6 @@ def get_subjects(req, subject_id=False):
         for i in req:
             dop[i['name'].lower().split()[0]] = i['id']
     return dop
-
-
-def get_start_school_quater():
-    now = datetime.now()
-    month = now.month
-    year = now.year
-    start_month = month
-    if start_month >= 11:
-        start_month = 11
-    elif start_month >= 9:
-        start_month = 9
-    elif start_month >= 4:
-        start_month = 4
-    else:
-        start_month = 1
-    from_time = datetime(year, start_month, 1)
-    return from_time
-
-
-def get_average(marks):
-    marks_number = len(marks)
-    marks_sum = sum(marks)
-    average = round(marks_sum / marks_number, 2)
-    return average
-
-
-def get_subject_average_mark(subject_id, user_id):
-    # TODO: переписать
-    school_id = sessionStorage[user_id]['dnevnik'].get_school()[0]['id']
-    from_time = get_start_school_quater()
-    marks = sessionStorage[user_id]['dnevnik'].get_marks_from_to(
-        sessionStorage[user_id]['person_id'],
-        school_id,
-        from_time
-    )
-    pprint(marks)
-    subject_marks = []
-    for i in marks:
-        pass
-    return get_average(subject_marks)
-
-
-def get_group_subject_average_mark(user_id):
-    group_id = sessionStorage[user_id]['dnevnik'].get_edu_groups()[1]
-    subject_marks = sessionStorage[user_id]['dnevnik'].get_group_marks(group_id)
-    return get_average(subject_marks)
 
 
 if __name__ == '__main__':
