@@ -5,7 +5,6 @@ from data.const import *
 from dnevnik import DnevnikAPI, DnevnikError
 from datetime import datetime, timedelta
 import pymorphy2
-from pprint import pprint
 
 app = Flask(__name__)
 
@@ -56,8 +55,6 @@ def handle_dialog(req, res):
         res['response']['tts'] = 'у меня очень много правил но они все маленькие и простые ' \
                                  'изза их количества пришлось разб+ить их на отдельные катег+ории ' \
                                  '' \
-                                 '' \
-                                 '' \
                                  'просто ' \
                                  'выберите из предложенного что вас больше всего интересует'
         res['response']['buttons'] = get_buttons('rules')
@@ -69,14 +66,109 @@ def handle_dialog(req, res):
     elif sessionStorage[user_id]['authorized']:
         # блок если наш пользователь авторизован, пытаем чего он хочет дальше
         if any(i in req['request']['original_utterance'].lower()
-               for i in ['расписани']) or \
-                sessionStorage[user_id]['schedule']:
-            sessionStorage[user_id]['schedule'] = True
-            schedule = req["days"]["nextDaySchedule"]
-            subj_list = next_schedule(schedule)
-            res['response']['text'] = 'Ваше расписание на завтра: ' + '\n'.join(i for i in
-                                                                                subj_list)
-            res['response']['tts'] = 'ваше расписание на завтра'
+               for i in ['расписани']):
+            for i in req['request']['nlu']['entities']:
+                if i['type'] == 'YANDEX.DATETIME':
+                    if i['value']['day_is_relative']:
+                        date = datetime.now() + timedelta(days=i['value']['day'])
+                        schedule = sessionStorage[user_id]['dnevnik'].get_schedules(
+                            sessionStorage[user_id]['person_id'],
+                            sessionStorage[user_id]['edu_group'],
+                            params={'startDate': (
+                                datetime(year=date.year,
+                                         month=date.month,
+                                         day=date.day,
+                                         hour=0,
+                                         minute=0,
+                                         second=0)),
+                                    'endDate': (
+                                    datetime(year=date.year,
+                                             month=date.month,
+                                             day=date.day,
+                                             hour=23,
+                                             minute=59,
+                                             second=59))}
+                        )
+                        if len(schedule['days'][0]['lessons'].keys()):
+                            res['response']['text'] = 'Ваше расписание:\n'
+                            for j in schedule['days'][0]['lessons']:
+                                dop = sessionStorage[user_id]['dnevnik'].get_lesson(j['id'])
+                                res['response']['text'] += j['hours'] + ' ' + dop['subject']['name'] + '\n'
+                            res['response']['tts'] = 'ваше расписание'
+                            return
+                        else:
+                            res['response']['text'] = 'Расписание не доступно'
+                            res['response']['tts'] = 'Расписание не доступно'
+                            return
+                    elif not i['value']['month_is_relative']:
+                        date = datetime(year=datetime.now().year,
+                                        month=i['value']['month'],
+                                        day=i['value']['day'])
+                        schedule = sessionStorage[user_id]['dnevnik'].get_schedules(
+                            sessionStorage[user_id]['person_id'],
+                            sessionStorage[user_id]['edu_group'],
+                            params={'startDate': (
+                                datetime(year=date.year,
+                                         month=date.month,
+                                         day=date.day,
+                                         hour=0,
+                                         minute=0,
+                                         second=0)),
+                                    'endDate': (
+                                    datetime(year=date.year,
+                                             month=date.month,
+                                             day=date.day,
+                                             hour=23,
+                                             minute=59,
+                                             second=59))}
+                        )
+                        if len(schedule['days'][0]['lessons'].keys()):
+                            res['response']['text'] = 'Ваше расписание:\n'
+                            for j in schedule['days'][0]['lessons']:
+                                dop = sessionStorage[user_id]['dnevnik'].get_lesson(j['id'])
+                                res['response']['text'] += j['hours'] + ' ' + dop['subject']['name'] + '\n'
+                            res['response']['tts'] = 'ваше расписание'
+                            return
+                        else:
+                            res['response']['text'] = 'Расписание не доступно'
+                            res['response']['tts'] = 'Расписание не доступно'
+                            return
+                    elif not i['value']['year_is_relative']:
+                        date = datetime(year=i['value']['year'],
+                                        month=i['value']['month'],
+                                        day=i['value']['day'])
+                        schedule = sessionStorage[user_id]['dnevnik'].get_schedules(
+                            sessionStorage[user_id]['person_id'],
+                            sessionStorage[user_id]['edu_group'],
+                            params={'startDate': (
+                                datetime(year=date.year,
+                                         month=date.month,
+                                         day=date.day,
+                                         hour=0,
+                                         minute=0,
+                                         second=0)),
+                                    'endDate': (
+                                    datetime(year=date.year,
+                                             month=date.month,
+                                             day=date.day,
+                                             hour=23,
+                                             minute=59,
+                                             second=59))}
+                        )
+                        if len(schedule['days'][0]['lessons'].keys()):
+                            res['response']['text'] = 'Ваше расписание:\n'
+                            for j in schedule['days'][0]['lessons']:
+                                dop = sessionStorage[user_id]['dnevnik'].get_lesson(j['id'])
+                                res['response']['text'] += j['hours'] + ' ' + dop['subject']['name'] + '\n'
+                            res['response']['tts'] = 'ваше расписание'
+                            return
+                        else:
+                            res['response']['text'] = 'Расписание не доступно'
+                            res['response']['tts'] = 'Расписание не доступно'
+                            return
+            res['response']['text'] = 'Я вас не поняла :('
+            res['response']['tts'] = 'я вас не поняла'
+            return
         elif any(i in req['request']['original_utterance'].lower()
                  for i in ['дз', 'домашк', 'домашнее задание', 'задали', 'задание по']):
             subject = get_subject(req['request']['original_utterance'].lower())

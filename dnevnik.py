@@ -1,5 +1,6 @@
 import requests
 from datetime import datetime, timedelta
+from pprint import pprint
 
 
 class DnevnikError(Exception):
@@ -53,9 +54,11 @@ class DnevnikBase:
                 if json_response["type"] == "parameterInvalid":
                     raise DnevnikError(json_response["description"])
                 if json_response["type"] == "apiServerError":
+                    pprint(json_response)
                     raise DnevnikError(
                         "Неизвестная ошибка в API, проверьте правильность параметров")
                 if json_response["type"] == "apiUnknownError":
+                    pprint(json_response)
                     raise DnevnikError(
                         "Неизвестная ошибка в API, проверьте правильность параметров")
         except KeyError:
@@ -184,3 +187,7 @@ class DnevnikAPI(DnevnikBase):
     def get_subjects(self, edu_group_id: int):
         subjects = self.get(f'edu-groups/{edu_group_id}/subjects')
         return subjects
+
+    def get_schedules(self, person_id: int, group_id: int, params: dict):
+        schedules = self.get(f'persons/{person_id}/groups/{group_id}/schedules', params=params)
+        return schedules
