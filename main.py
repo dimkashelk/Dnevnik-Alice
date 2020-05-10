@@ -81,7 +81,7 @@ def handle_dialog(req, res):
                                          hour=0,
                                          minute=0,
                                          second=0)),
-                                'endDate': (
+                                    'endDate': (
                                     datetime(year=date.year,
                                              month=date.month,
                                              day=date.day,
@@ -114,7 +114,7 @@ def handle_dialog(req, res):
                                          hour=0,
                                          minute=0,
                                          second=0)),
-                                'endDate': (
+                                    'endDate': (
                                     datetime(year=date.year,
                                              month=date.month,
                                              day=date.day,
@@ -147,7 +147,7 @@ def handle_dialog(req, res):
                                          hour=0,
                                          minute=0,
                                          second=0)),
-                                'endDate': (
+                                    'endDate': (
                                     datetime(year=date.year,
                                              month=date.month,
                                              day=date.day,
@@ -370,13 +370,13 @@ def handle_dialog(req, res):
                             if len(marks):
                                 dop = {}
                                 if subject is None:
-                                    for i in marks:
+                                    for j in marks:
                                         lesson = sessionStorage[user_id]['dnevnik'].get_lesson(
-                                            i['lesson'])['subject']['name']
+                                            j['lesson'])['subject']['name']
                                         if dop.get(lesson, False):
-                                            dop[lesson].append(i['value'])
+                                            dop[lesson].append(j['value'])
                                         else:
-                                            dop[lesson] = [i['value']]
+                                            dop[lesson] = [j['value']]
                                 else:
                                     for j in marks:
                                         lesson = sessionStorage[user_id]['dnevnik'].get_lesson(
@@ -540,6 +540,7 @@ def get_buttons(obj: str):
 
 
 def rules(rul: str):
+    # правила
     text = []
     with open(f'./data/usage_rules/text/{rules_to_en[rul]}', encoding='utf-8') as file:
         text.append(file.read())
