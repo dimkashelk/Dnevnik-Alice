@@ -500,6 +500,9 @@ def handle_dialog(req, res):
             res['response']['text'] = 'Я вас не поняла :('
             res['response']['tts'] = 'я вас не поняла'
             return
+        res['response']['text'] = 'Я вас не поняла :('
+        res['response']['tts'] = 'я вас не поняла'
+        return
     elif sessionStorage[user_id]['authorized'] is False and \
             len(req['request']['original_utterance'].split()) == 2 and \
             req['request']['original_utterance'].split()[0].lower() not in rules_ru and \
