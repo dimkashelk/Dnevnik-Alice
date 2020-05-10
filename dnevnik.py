@@ -1,5 +1,4 @@
 import requests
-from pprint import pprint
 from datetime import datetime, timedelta
 
 
@@ -174,6 +173,9 @@ class DnevnikAPI(DnevnikBase):
                           from_time: datetime = datetime.now(),
                           to_time: datetime = datetime.now()):
         marks = self.get(
-            f"persons/{person_id}/schools/{school_id}/marks/{from_time}/{to_time}"
+            f"persons/{person_id}/schools/{school_id}/marks/"
+            f"{from_time}/"
+            f"{to_time}"
+
         )
         return marks
