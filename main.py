@@ -89,7 +89,7 @@ def handle_dialog(req, res):
                                              minute=59,
                                              second=59))}
                         )
-                        if len(schedule['days'][0]['lessons'].keys()):
+                        if len(schedule['days'][0]['lessons']):
                             res['response']['text'] = 'Ваше расписание:\n'
                             for j in schedule['days'][0]['lessons']:
                                 dop = sessionStorage[user_id]['dnevnik'].get_lesson(j['id'])
@@ -247,6 +247,9 @@ def handle_dialog(req, res):
                     else:
                         res['response']['text'] = 'Я вас не поняла :('
                         res['response']['tts'] = 'я вас не поняла'
+            res['response']['text'] = 'Я вас не поняла :('
+            res['response']['tts'] = 'я вас не поняла'
+            return
         elif any(i in req['request']['original_utterance'].lower()
                  for i in ['оценки', 'поставили']):
             subject = get_subject(req['request']['original_utterance'].lower())
