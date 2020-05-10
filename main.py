@@ -540,6 +540,7 @@ def get_buttons(obj: str):
 
 
 def rules(rul: str):
+    # правила
     text = []
     with open(f'./data/usage_rules/text/{rules_to_en[rul]}', encoding='utf-8') as file:
         text.append(file.read())
