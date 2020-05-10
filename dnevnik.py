@@ -53,9 +53,11 @@ class DnevnikBase:
                 if json_response["type"] == "parameterInvalid":
                     raise DnevnikError(json_response["description"])
                 if json_response["type"] == "apiServerError":
-                    raise DnevnikError("Неизвестная ошибка в API, проверьте правильность параметров")
+                    raise DnevnikError(
+                        "Неизвестная ошибка в API, проверьте правильность параметров")
                 if json_response["type"] == "apiUnknownError":
-                    raise DnevnikError("Неизвестная ошибка в API, проверьте правильность параметров")
+                    raise DnevnikError(
+                        "Неизвестная ошибка в API, проверьте правильность параметров")
         except KeyError:
             pass
 
@@ -176,6 +178,13 @@ class DnevnikAPI(DnevnikBase):
             f"persons/{person_id}/schools/{school_id}/marks/"
             f"{from_time}/"
             f"{to_time}"
-
         )
         return marks
+
+    def get_subjects(self, edu_group_id: int):
+        subjects = self.get(f'edu-groups/{edu_group_id}/subjects')
+        return subjects
+
+    def get_schedules(self, person_id: int, group_id: int, params: dict):
+        schedules = self.get(f'persons/{person_id}/groups/{group_id}/schedules', params=params)
+        return schedules

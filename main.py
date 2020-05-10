@@ -370,13 +370,13 @@ def handle_dialog(req, res):
                             if len(marks):
                                 dop = {}
                                 if subject is None:
-                                    for i in marks:
+                                    for j in marks:
                                         lesson = sessionStorage[user_id]['dnevnik'].get_lesson(
-                                            i['lesson'])['subject']['name']
+                                            j['lesson'])['subject']['name']
                                         if dop.get(lesson, False):
-                                            dop[lesson].append(i['value'])
+                                            dop[lesson].append(j['value'])
                                         else:
-                                            dop[lesson] = [i['value']]
+                                            dop[lesson] = [j['value']]
                                 else:
                                     for j in marks:
                                         lesson = sessionStorage[user_id]['dnevnik'].get_lesson(
