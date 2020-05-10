@@ -4,6 +4,7 @@ import json
 from data.const import *
 from dnevnik import DnevnikAPI, DnevnikError
 from datetime import datetime, timedelta
+import pymorphy2
 
 app = Flask(__name__)
 
@@ -35,9 +36,11 @@ def handle_dialog(req, res):
             'authorized': False,
         }
         res['response']['text'] = 'Привет! Я - твой личный помощник с Дневником. ' \
-                                  'Пожалуйста ознакомься с инструкцией, чтобы избежать недопонимай в разговоре'
+                                  'Пожалуйста ознакомься с инструкцией, чтобы избежать ' \
+                                  'недопонимай в разговоре'
         res['response']['tts'] = 'привет я твой личный помощник с дневником ' \
-                                 'пожалуйста ознакомься с инструкцией чтобы избежать недопоним+аний в разговоре'
+                                 'пожалуйста ознакомься с инструкцией чтобы избежать ' \
+                                 'недопоним+аний в разговоре'
         return
     if any(i in req['request']['original_utterance'].lower()
            for i in ['инструкц', 'правила']):
@@ -47,9 +50,12 @@ def handle_dialog(req, res):
             dop += f'{i + 1}) {val.capitalize()}\n'
         dop = dop.strip()
         res['response']['text'] = 'У меня очень много правил, но они все маленькие и простые. ' \
-                                  'Из-за их количества пришлось разбить их на отдельные категории:\n' + dop
+                                  'Из-за их количества пришлось разбить их на отдельные ' \
+                                  'категории:\n' + dop
         res['response']['tts'] = 'у меня очень много правил но они все маленькие и простые ' \
-                                 'изза их количества пришлось разб+ить их на отдельные катег+ории просто ' \
+                                 'изза их количества пришлось разб+ить их на отдельные катег+ории ' \
+                                 '' \
+                                 'просто ' \
                                  'выберите из предложенного что вас больше всего интересует'
         res['response']['buttons'] = get_buttons('rules')
     elif req['request']['original_utterance'].lower() in rules_ru:
@@ -60,7 +66,111 @@ def handle_dialog(req, res):
     elif sessionStorage[user_id]['authorized']:
         # блок если наш пользователь авторизован, пытаем чего он хочет дальше
         if any(i in req['request']['original_utterance'].lower()
-               for i in ['дз', 'домашк', 'домашнее задание', 'задали', 'задание по']):
+               for i in ['расписани']):
+            for i in req['request']['nlu']['entities']:
+                if i['type'] == 'YANDEX.DATETIME':
+                    if i['value']['day_is_relative']:
+                        date = datetime.now() + timedelta(days=i['value']['day'])
+                        schedule = sessionStorage[user_id]['dnevnik'].get_schedules(
+                            sessionStorage[user_id]['person_id'],
+                            sessionStorage[user_id]['edu_group'],
+                            params={'startDate': (
+                                datetime(year=date.year,
+                                         month=date.month,
+                                         day=date.day,
+                                         hour=0,
+                                         minute=0,
+                                         second=0)),
+                                    'endDate': (
+                                    datetime(year=date.year,
+                                             month=date.month,
+                                             day=date.day,
+                                             hour=23,
+                                             minute=59,
+                                             second=59))}
+                        )
+                        if len(schedule['days'][0]['lessons']):
+                            res['response']['text'] = 'Ваше расписание:\n'
+                            for j in schedule['days'][0]['lessons']:
+                                dop = sessionStorage[user_id]['dnevnik'].get_lesson(j['id'])
+                                res['response']['text'] += j['hours'] + ' ' + dop['subject']['name'] + '\n'
+                            res['response']['tts'] = 'ваше расписание'
+                            return
+                        else:
+                            res['response']['text'] = 'Расписание не доступно'
+                            res['response']['tts'] = 'Расписание не доступно'
+                            return
+                    elif not i['value']['month_is_relative']:
+                        date = datetime(year=datetime.now().year,
+                                        month=i['value']['month'],
+                                        day=i['value']['day'])
+                        schedule = sessionStorage[user_id]['dnevnik'].get_schedules(
+                            sessionStorage[user_id]['person_id'],
+                            sessionStorage[user_id]['edu_group'],
+                            params={'startDate': (
+                                datetime(year=date.year,
+                                         month=date.month,
+                                         day=date.day,
+                                         hour=0,
+                                         minute=0,
+                                         second=0)),
+                                    'endDate': (
+                                    datetime(year=date.year,
+                                             month=date.month,
+                                             day=date.day,
+                                             hour=23,
+                                             minute=59,
+                                             second=59))}
+                        )
+                        if len(schedule['days'][0]['lessons'].keys()):
+                            res['response']['text'] = 'Ваше расписание:\n'
+                            for j in schedule['days'][0]['lessons']:
+                                dop = sessionStorage[user_id]['dnevnik'].get_lesson(j['id'])
+                                res['response']['text'] += j['hours'] + ' ' + dop['subject']['name'] + '\n'
+                            res['response']['tts'] = 'ваше расписание'
+                            return
+                        else:
+                            res['response']['text'] = 'Расписание не доступно'
+                            res['response']['tts'] = 'Расписание не доступно'
+                            return
+                    elif not i['value']['year_is_relative']:
+                        date = datetime(year=i['value']['year'],
+                                        month=i['value']['month'],
+                                        day=i['value']['day'])
+                        schedule = sessionStorage[user_id]['dnevnik'].get_schedules(
+                            sessionStorage[user_id]['person_id'],
+                            sessionStorage[user_id]['edu_group'],
+                            params={'startDate': (
+                                datetime(year=date.year,
+                                         month=date.month,
+                                         day=date.day,
+                                         hour=0,
+                                         minute=0,
+                                         second=0)),
+                                    'endDate': (
+                                    datetime(year=date.year,
+                                             month=date.month,
+                                             day=date.day,
+                                             hour=23,
+                                             minute=59,
+                                             second=59))}
+                        )
+                        if len(schedule['days'][0]['lessons'].keys()):
+                            res['response']['text'] = 'Ваше расписание:\n'
+                            for j in schedule['days'][0]['lessons']:
+                                dop = sessionStorage[user_id]['dnevnik'].get_lesson(j['id'])
+                                res['response']['text'] += j['hours'] + ' ' + dop['subject']['name'] + '\n'
+                            res['response']['tts'] = 'ваше расписание'
+                            return
+                        else:
+                            res['response']['text'] = 'Расписание не доступно'
+                            res['response']['tts'] = 'Расписание не доступно'
+                            return
+            res['response']['text'] = 'Я вас не поняла :('
+            res['response']['tts'] = 'я вас не поняла'
+            return
+        elif any(i in req['request']['original_utterance'].lower()
+                 for i in ['дз', 'домашк', 'домашнее задание', 'задали', 'задание по']):
             subject = get_subject(req['request']['original_utterance'].lower())
             for i in req['request']['nlu']['entities']:
                 if i['type'] == 'YANDEX.DATETIME':
@@ -69,15 +179,19 @@ def handle_dialog(req, res):
                         year, month, day = now.year, now.month, now.day
                         homeworks = sessionStorage[user_id]['dnevnik'].get_school_homework(
                             school_id=sessionStorage[user_id]['school_id'],
-                            start_time=datetime(year=year, month=month, day=day) + timedelta(days=i['value']['day']),
-                            end_time=datetime(year=year, month=month, day=day) + timedelta(days=i['value']['day'])
+                            start_time=datetime(year=year, month=month, day=day) + timedelta(
+                                days=i['value']['day']),
+                            end_time=datetime(year=year, month=month, day=day) + timedelta(
+                                days=i['value']['day'])
                         )
                         homework = {}
-                        for i in homeworks['works']:
-                            dop = sessionStorage[user_id]['dnevnik'].get_homework_by_id(i['id'])
+                        for j in homeworks['works']:
+                            dop = sessionStorage[user_id]['dnevnik'].get_homework_by_id(j['id'])
                             if dop['subjects'][0]['name'] in homework.keys():
-                                if dop['works'][0]['text'] not in homework[dop['subjects'][0]['name']]:
-                                    homework[dop['subjects'][0]['name']].append(dop['works'][0]['text'])
+                                if dop['works'][0]['text'] not in \
+                                        homework[dop['subjects'][0]['name']]:
+                                    homework[dop['subjects'][0]['name']].append(
+                                        dop['works'][0]['text'])
                             else:
                                 homework[dop['subjects'][0]['name']] = [dop['works'][0]['text']]
                         if len(homework.keys()) == 0:
@@ -89,7 +203,8 @@ def handle_dialog(req, res):
                             for v in homework.keys():
                                 dop += f'{v.capitalize()}: {"; ".join(homework[v])}\n'
                         else:
-                            for v in list(filter(lambda x: check_words(x.lower(), subject), homework.keys())):
+                            for v in list(filter(lambda x: check_words(x.lower(), subject),
+                                                 homework.keys())):
                                 dop += f'{v.capitalize()}: {"; ".join(homework[v])}\n'
                         res['response']['text'] = dop
                         res['response']['tts'] = 'вот ваши домашние задания'
@@ -99,15 +214,19 @@ def handle_dialog(req, res):
                         year, month, day = now.year, now.month, now.day
                         homeworks = sessionStorage[user_id]['dnevnik'].get_school_homework(
                             school_id=sessionStorage[user_id]['school_id'],
-                            start_time=datetime(year=year, month=i['value']['month'], day=i['value']['day']),
-                            end_time=datetime(year=year, month=i['value']['month'], day=i['value']['day'])
+                            start_time=datetime(year=year, month=i['value']['month'],
+                                                day=i['value']['day']),
+                            end_time=datetime(year=year, month=i['value']['month'],
+                                              day=i['value']['day'])
                         )
                         homework = {}
-                        for i in homeworks['works']:
-                            dop = sessionStorage[user_id]['dnevnik'].get_homework_by_id(i['id'])
+                        for j in homeworks['works']:
+                            dop = sessionStorage[user_id]['dnevnik'].get_homework_by_id(j['id'])
                             if dop['subjects'][0]['name'] in homework.keys():
-                                if dop['works'][0]['text'] not in homework[dop['subjects'][0]['name']]:
-                                    homework[dop['subjects'][0]['name']].append(dop['works'][0]['text'])
+                                if dop['works'][0]['text'] not in \
+                                        homework[dop['subjects'][0]['name']]:
+                                    homework[dop['subjects'][0]['name']].append(
+                                        dop['works'][0]['text'])
                             else:
                                 homework[dop['subjects'][0]['name']] = [dop['works'][0]['text']]
                         if len(homework.keys()) == 0:
@@ -119,7 +238,8 @@ def handle_dialog(req, res):
                             for v in homework.keys():
                                 dop += f'{v.capitalize()}: {"; ".join(homework[v])}\n'
                         else:
-                            for v in list(filter(lambda x: check_words(x.lower(), subject), homework.keys())):
+                            for v in list(filter(lambda x: check_words(x.lower(), subject),
+                                                 homework.keys())):
                                 dop += f'{v.capitalize()}: {"; ".join(homework[v])}\n'
                         res['response']['text'] = dop
                         res['response']['tts'] = 'вот ваши домашние задания'
@@ -127,6 +247,9 @@ def handle_dialog(req, res):
                     else:
                         res['response']['text'] = 'Я вас не поняла :('
                         res['response']['tts'] = 'я вас не поняла'
+            res['response']['text'] = 'Я вас не поняла :('
+            res['response']['tts'] = 'я вас не поняла'
+            return
         elif any(i in req['request']['original_utterance'].lower()
                  for i in ['оценки', 'поставили']):
             subject = get_subject(req['request']['original_utterance'].lower())
@@ -196,25 +319,26 @@ def handle_dialog(req, res):
                                 if len(marks):
                                     dop = {}
                                     if subject is None:
-                                        for i in marks:
+                                        for j in marks:
                                             lesson = sessionStorage[user_id]['dnevnik'].get_lesson(
-                                                i['lesson'])['subject']['name']
+                                                j['lesson'])['subject']['name']
                                             if dop.get(lesson, False):
-                                                dop[lesson].append(i['value'])
+                                                dop[lesson].append(j['value'])
                                             else:
-                                                dop[lesson] = [i['value']]
+                                                dop[lesson] = [j['value']]
                                     else:
-                                        for i in marks:
+                                        for j in marks:
                                             lesson = sessionStorage[user_id]['dnevnik'].get_lesson(
-                                                i['lesson'])['subject']['name']
+                                                j['lesson'])['subject']['name']
                                             if check_words(lesson, subject):
                                                 if dop.get(lesson, False):
-                                                    dop[lesson].append(i['value'])
+                                                    dop[lesson].append(j['value'])
                                                 else:
-                                                    dop[lesson] = [i['value']]
+                                                    dop[lesson] = [j['value']]
                                     res['response']['text'] = 'Ваши оценки:\n'
-                                    for i in dop.keys():
-                                        res['response']['text'] += f'{i.capitalize()} - {", ".join(dop[i])}'
+                                    for j in dop.keys():
+                                        res['response'][
+                                            'text'] += f'{j.capitalize()} - {", ".join(dop[j])}'
                                     res['response']['tts'] = 'ваши оценки'
                                     return
                                 else:
@@ -228,7 +352,8 @@ def handle_dialog(req, res):
                     elif 'month_is_relative' in i['value'].keys():
                         if not i['value']['month_is_relative']:
                             year = datetime.now().year
-                            date = datetime(year, i['value']['month'], i['value']['day']) + timedelta(days=-1)
+                            date = datetime(year, i['value']['month'],
+                                            i['value']['day']) + timedelta(days=-1)
                             marks = sessionStorage[user_id]['dnevnik'].get_marks_from_to(
                                 person_id=sessionStorage[user_id]['person_id'],
                                 school_id=sessionStorage[user_id]['school_id'],
@@ -248,25 +373,26 @@ def handle_dialog(req, res):
                             if len(marks):
                                 dop = {}
                                 if subject is None:
-                                    for i in marks:
+                                    for j in marks:
                                         lesson = sessionStorage[user_id]['dnevnik'].get_lesson(
-                                            i['lesson'])['subject']['name']
+                                            j['lesson'])['subject']['name']
                                         if dop.get(lesson, False):
-                                            dop[lesson].append(i['value'])
+                                            dop[lesson].append(j['value'])
                                         else:
-                                            dop[lesson] = [i['value']]
+                                            dop[lesson] = [j['value']]
                                 else:
-                                    for i in marks:
+                                    for j in marks:
                                         lesson = sessionStorage[user_id]['dnevnik'].get_lesson(
-                                            i['lesson'])['subject']['name']
+                                            j['lesson'])['subject']['name']
                                         if check_words(lesson, subject):
                                             if dop.get(lesson, False):
-                                                dop[lesson].append(i['value'])
+                                                dop[lesson].append(j['value'])
                                             else:
-                                                dop[lesson] = [i['value']]
+                                                dop[lesson] = [j['value']]
                                 res['response']['text'] = 'Ваши оценки:\n'
-                                for i in dop.keys():
-                                    res['response']['text'] += f'{i.capitalize()} - {", ".join(dop[i])}\n'
+                                for j in dop.keys():
+                                    res['response'][
+                                        'text'] += f'{j.capitalize()} - {", ".join(dop[j])}\n'
                                 res['response']['tts'] = 'ваши оценки'
                                 return
                             else:
@@ -296,25 +422,26 @@ def handle_dialog(req, res):
                             if len(marks):
                                 dop = {}
                                 if subject is None:
-                                    for i in marks:
+                                    for j in marks:
                                         lesson = sessionStorage[user_id]['dnevnik'].get_lesson(
-                                            i['lesson'])['subject']['name']
+                                            j['lesson'])['subject']['name']
                                         if dop.get(lesson, False):
-                                            dop[lesson].append(i['value'])
+                                            dop[lesson].append(j['value'])
                                         else:
-                                            dop[lesson] = [i['value']]
+                                            dop[lesson] = [j['value']]
                                 else:
-                                    for i in marks:
+                                    for j in marks:
                                         lesson = sessionStorage[user_id]['dnevnik'].get_lesson(
-                                            i['lesson'])['subject']['name']
+                                            j['lesson'])['subject']['name']
                                         if check_words(lesson, subject):
                                             if dop.get(lesson, False):
-                                                dop[lesson].append(i['value'])
+                                                dop[lesson].append(j['value'])
                                             else:
-                                                dop[lesson] = [i['value']]
+                                                dop[lesson] = [j['value']]
                                 res['response']['text'] = 'Ваши оценки:\n'
-                                for i in dop.keys():
-                                    res['response']['text'] += f'{i.capitalize()} - {", ".join(dop[i])}'
+                                for j in dop.keys():
+                                    res['response'][
+                                        'text'] += f'{j.capitalize()} - {", ".join(dop[j])}'
                                 res['response']['tts'] = 'ваши оценки'
                                 return
                             else:
@@ -344,25 +471,26 @@ def handle_dialog(req, res):
                             if len(marks):
                                 dop = {}
                                 if subject is None:
-                                    for i in marks:
+                                    for j in marks:
                                         lesson = sessionStorage[user_id]['dnevnik'].get_lesson(
-                                            i['lesson'])['subject']['name']
+                                            j['lesson'])['subject']['name']
                                         if dop.get(lesson, False):
-                                            dop[lesson].append(i['value'])
+                                            dop[lesson].append(j['value'])
                                         else:
-                                            dop[lesson] = [i['value']]
+                                            dop[lesson] = [j['value']]
                                 else:
-                                    for i in marks:
+                                    for j in marks:
                                         lesson = sessionStorage[user_id]['dnevnik'].get_lesson(
-                                            i['lesson'])['subject']['name']
+                                            j['lesson'])['subject']['name']
                                         if check_words(lesson, subject):
                                             if dop.get(lesson, False):
-                                                dop[lesson].append(i['value'])
+                                                dop[lesson].append(j['value'])
                                             else:
-                                                dop[lesson] = [i['value']]
+                                                dop[lesson] = [j['value']]
                                 res['response']['text'] = 'Ваши оценки:\n'
-                                for i in dop.keys():
-                                    res['response']['text'] += f'{i.capitalize()} - {", ".join(dop[i])}'
+                                for j in dop.keys():
+                                    res['response'][
+                                        'text'] += f'{j.capitalize()} - {", ".join(dop[j])}'
                                 res['response']['tts'] = 'ваши оценки'
                                 return
                             else:
@@ -372,10 +500,9 @@ def handle_dialog(req, res):
             res['response']['text'] = 'Я вас не поняла :('
             res['response']['tts'] = 'я вас не поняла'
             return
-        else:
-            res['response']['text'] = 'Я вас не поняла :('
-            res['response']['tts'] = 'я вас не поняла'
-            return
+        res['response']['text'] = 'Я вас не поняла :('
+        res['response']['tts'] = 'я вас не поняла'
+        return
     elif sessionStorage[user_id]['authorized'] is False and \
             len(req['request']['original_utterance'].split()) == 2 and \
             req['request']['original_utterance'].split()[0].lower() not in rules_ru and \
@@ -390,12 +517,16 @@ def handle_dialog(req, res):
             res['response']['tts'] = str(e).lower()
             return
         sessionStorage[user_id]['authorized'] = True
-        sessionStorage[user_id]['school_id'] = sessionStorage[user_id]['dnevnik'].get_school()[0]['id']
-        sessionStorage[user_id]['edu_group'] = sessionStorage[user_id]['dnevnik'].get_edu_groups()[1]
-        sessionStorage[user_id]['person_id'] = sessionStorage[user_id]['dnevnik'].get_info_about_me()['personId']
-        dop = sessionStorage[user_id]['dnevnik'].get_work_types(sessionStorage[user_id]['school_id'])
-        sessionStorage[user_id]['id-subject'] = get_types_work(dop)
-        sessionStorage[user_id]['subject-id'] = get_types_work(dop, subject_id=True)
+        sessionStorage[user_id]['school_id'] = \
+            sessionStorage[user_id]['dnevnik'].get_school()[0]['id']
+        sessionStorage[user_id]['edu_group'] = \
+            sessionStorage[user_id]['dnevnik'].get_edu_groups()[1]
+        sessionStorage[user_id]['person_id'] = \
+            sessionStorage[user_id]['dnevnik'].get_info_about_me()['personId']
+        dop = sessionStorage[user_id]['dnevnik'].get_subjects(
+            sessionStorage[user_id]['edu_group'])
+        sessionStorage[user_id]['id-subject'] = get_subjects(dop)
+        sessionStorage[user_id]['subject-id'] = get_subjects(dop, subject_id=True)
         res['response']['text'] = 'Вы авторизовались и я подключена к дневнику!'
         res['response']['tts'] = 'вы авторизов+ались и я подключена к дневнику'
     else:
@@ -416,6 +547,7 @@ def get_buttons(obj: str):
 
 
 def rules(rul: str):
+    # правила
     text = []
     with open(f'./data/usage_rules/text/{rules_to_en[rul]}', encoding='utf-8') as file:
         text.append(file.read())
@@ -427,27 +559,53 @@ def rules(rul: str):
 def get_subject(text):
     if ' по ' in text:
         ind = text.split().index('по') + 1
-        return text.split()[ind]
+        morph = pymorphy2.MorphAnalyzer()
+        p = morph.parse(text.split()[ind])[0]
+        return p.normal_form
     return None
 
 
 def check_words(word1, word2):
-    # fixme: исправить сравнение двух слов, короче надо придумать что-то новое
-    dop = 0
-    for i in range(min(len(word1), len(word2))):
-        if word1[i] == word2[i]:
-            dop += 1
-    return dop >= len(word1) // 2 and dop >= len(word2) // 2
+    morph = pymorphy2.MorphAnalyzer()
+    word = morph.parse(word2)[0]
+    if 'NOUN' in word.tag.POS:
+        if word1 in [word.inflect({'nomn'}).word,
+                     word.inflect({'nomn'}).word,
+                     word.inflect({'gent'}).word,
+                     word.inflect({'datv'}).word,
+                     word.inflect({'accs'}).word,
+                     word.inflect({'ablt'}).word,
+                     word.inflect({'loct'}).word,
+                     word.inflect({'nomn', 'plur'}).word,
+                     word.inflect({'gent', 'plur'}).word,
+                     word.inflect({'datv', 'plur'}).word,
+                     word.inflect({'accs', 'plur'}).word,
+                     word.inflect({'ablt', 'plur'}).word,
+                     word.inflect({'loct', 'plur'}).word]:
+            return True
+    else:
+        dop = 0
+        for i in range(min(len(word1), len(word2))):
+            if word1[i] == word2[i]:
+                dop += 1
+        return dop >= len(word1) // 2 and dop >= len(word2) // 2
 
 
-def get_types_work(req, subject_id=False):
+def next_schedule(schedule):
+    subject_list = []
+    for i in schedule:
+        subject_list.append(i['subjectName'])
+    return subject_list
+
+
+def get_subjects(req, subject_id=False):
     dop = {}
     if not subject_id:
         for i in req:
-            dop[i['id']] = i['abbr']
+            dop[i['id']] = i['name'].lower().split()[0]
     else:
         for i in req:
-            dop[i['abbr']] = i['id']
+            dop[i['name'].lower().split()[0]] = i['id']
     return dop
 
 
