@@ -81,7 +81,7 @@ def handle_dialog(req, res):
                                          hour=0,
                                          minute=0,
                                          second=0)),
-                                    'endDate': (
+                                'endDate': (
                                     datetime(year=date.year,
                                              month=date.month,
                                              day=date.day,
@@ -114,7 +114,7 @@ def handle_dialog(req, res):
                                          hour=0,
                                          minute=0,
                                          second=0)),
-                                    'endDate': (
+                                'endDate': (
                                     datetime(year=date.year,
                                              month=date.month,
                                              day=date.day,
@@ -147,7 +147,7 @@ def handle_dialog(req, res):
                                          hour=0,
                                          minute=0,
                                          second=0)),
-                                    'endDate': (
+                                'endDate': (
                                     datetime(year=date.year,
                                              month=date.month,
                                              day=date.day,
@@ -558,12 +558,29 @@ def get_subject(text):
 
 
 def check_words(word1, word2):
-    # fixme: исправить сравнение двух слов, короче надо придумать что-то новое
-    dop = 0
-    for i in range(min(len(word1), len(word2))):
-        if word1[i] == word2[i]:
-            dop += 1
-    return dop >= len(word1) // 2 and dop >= len(word2) // 2
+    morph = pymorphy2.MorphAnalyzer()
+    word = morph.parse(word2)[0]
+    if 'NOUN' in word.tag.POS:
+        if word1 in [word.inflect({'nomn'}).word,
+                     word.inflect({'nomn'}).word,
+                     word.inflect({'gent'}).word,
+                     word.inflect({'datv'}).word,
+                     word.inflect({'accs'}).word,
+                     word.inflect({'ablt'}).word,
+                     word.inflect({'loct'}).word,
+                     word.inflect({'nomn', 'plur'}).word,
+                     word.inflect({'gent', 'plur'}).word,
+                     word.inflect({'datv', 'plur'}).word,
+                     word.inflect({'accs', 'plur'}).word,
+                     word.inflect({'ablt', 'plur'}).word,
+                     word.inflect({'loct', 'plur'}).word]:
+            return True
+    else:
+        dop = 0
+        for i in range(min(len(word1), len(word2))):
+            if word1[i] == word2[i]:
+                dop += 1
+        return dop >= len(word1) // 2 and dop >= len(word2) // 2
 
 
 def next_schedule(schedule):
