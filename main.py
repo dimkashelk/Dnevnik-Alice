@@ -122,7 +122,7 @@ def handle_dialog(req, res):
                                              minute=59,
                                              second=59))}
                         )
-                        if len(schedule['days'][0]['lessons'].keys()):
+                        if len(schedule['days'][0]['lessons']):
                             res['response']['text'] = 'Ваше расписание:\n'
                             for j in schedule['days'][0]['lessons']:
                                 dop = sessionStorage[user_id]['dnevnik'].get_lesson(j['id'])
