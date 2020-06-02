@@ -3,19 +3,23 @@ from datetime import datetime, timedelta
 
 
 class DnevnikError(Exception):
+    # ошибка дневника (дневник не доступен или неправильный логин/пароль)
     pass
 
 
 class DnevnikBase:
 
+    # класс с базовыми функциями
+
     def __init__(self, login: str = None, password: str = None, token: str = None):
+        # создаем сессию для request
         self.session = requests.Session()
         self.host = "https://api.dnevnik.ru/v2/"
-        if token is None:
-            self.token = self.get_token(login, password)
+        self.token = self.get_token(login, password)
         self.session.headers = {"Access-Token": self.token}
 
     def get_token(self, login, password):
+        # получение токена доступа (для каждого пользователя он свой)
         token = self.session.post(
             "https://api.dnevnik.ru/v2/authorizations/bycredentials",
             json={
@@ -40,6 +44,8 @@ class DnevnikBase:
 
     @staticmethod
     def _check_response(response):
+        # проверяем ответ дневника на корректность
+        # и если что-то не так выкидываем ошибку
         if response.headers.get("Content-Type") == "text/html":
             error_html = response.content.decode()
             error_text = " ".join(
@@ -62,6 +68,7 @@ class DnevnikBase:
             pass
 
     def get(self, method: str, params=None, **kwargs):
+        # осуществляем get запрос
         if params is None:
             params = {}
         response = self.session.get(self.host + method, params=params, **kwargs)
@@ -69,6 +76,7 @@ class DnevnikBase:
         return response.json()
 
     def post(self, method: str, data=None, **kwargs):
+        # осуществляем post запрос
         if data is None:
             data = {}
         response = self.session.post(self.host + method, data=data, **kwargs)
@@ -76,6 +84,7 @@ class DnevnikBase:
         return response.json()
 
     def delete(self, method: str, params=None, **kwargs):
+        # осуществляем delete запрос
         if params is None:
             params = {}
         response = self.session.delete(self.host + method, params=params, **kwargs)
@@ -83,6 +92,7 @@ class DnevnikBase:
         return response.json()
 
     def put(self, method: str, params=None, **kwargs):
+        # осуществляем put запрос
         if params is None:
             params = {}
         response = self.session.put(self.host + method, data=params, **kwargs)
@@ -92,16 +102,20 @@ class DnevnikBase:
 
 class DnevnikAPI(DnevnikBase):
 
+    # основной класс дневника
+
     def __init__(self, login: str = None, password: str = None, token: str = None):
         super().__init__(login, password, token)
         self.login = login
         self.password = password
 
     def get_school(self):
+        """Получение школы пользователя"""
         school_id = self.get("schools/person-schools")
         return school_id
 
     def get_homework_by_id(self, homework_id: int):
+        """Получение домашнего задания по его id"""
         homework = self.get(f"users/me/school/homeworks", params={"homeworkId": homework_id})
         return homework
 
@@ -113,6 +127,7 @@ class DnevnikAPI(DnevnikBase):
             end_time: datetime = datetime(year=datetime.now().year, month=datetime.now().month,
                                           day=datetime.now().day) + timedelta(days=1),
     ):
+        """Получение домашнего задания в заданный период"""
         homework = self.get(
             f"users/me/school/{school_id}/homeworks",
             params={"startDate": start_time, "endDate": end_time},
@@ -120,52 +135,56 @@ class DnevnikAPI(DnevnikBase):
         return homework
 
     def get_all_subjects(self, school_id: int):
+        """Получение всех предметов ученика"""
         all_subjects = self.get(f'schools/{school_id}/subjects')
         return all_subjects
 
     def get_edu_groups(self):
+        """Получение всех учебных групп"""
         edu_groups = self.get(f"users/me/edu-groups")
         return edu_groups
 
     def get_info_about_me(self):
+        """Информация про ученика"""
         info = self.get("users/me")
         return info
 
     def get_group_marks(self, group_id: int):
+        """Получение всех финальных оценок группы по всем предметам"""
         edu_groups_marks = self.get(f"edu-groups/{group_id}/final-marks")
         return edu_groups_marks
 
     def get_person_group_marks(self, person_id: int, group_id: int):
+        """Получение всех финальных оценок ученика в группе"""
         person_marks_in_group = self.get(
             f"persons/{person_id}/edu-groups/{group_id}/final-marks"
         )
         return person_marks_in_group
 
-    def get_person_group_marks_final(self, person_id: int, group_id: int):
-        person_final_marks_in_group = self.get(
-            f"persons/{person_id}/edu-groups/{group_id}/allfinalmarks"
-        )
-        return person_final_marks_in_group
-
     def get_group_subject_final_marks(self, group_id: int, subject_id: int):
+        """Получение оценок всей группы по конретному предмету"""
         group_subject_marks = self.get(
             f"edu-groups/{group_id}/subjects/{subject_id}/final-marks"
         )
         return group_subject_marks
 
     def get_person(self, person_id: int):
+        """Получение информации о персоне по id"""
         memberships = self.get(f"persons/{person_id}")
         return memberships
 
     def get_lesson(self, lesson_id: int):
+        """Получение информации про урок по id"""
         lesson = self.get(f"lessons/{lesson_id}")
         return lesson
 
     def get_last_marks(self, person_id, group_id, **kwargs):
+        """Получение последних оценок"""
         marks = self.get(f"persons/{person_id}/group/{group_id}/recentmarks", params=kwargs)
         return marks
 
     def get_work_types(self, school_id):
+        """Получение всех типов работ в школе"""
         types = self.get(f"work-types/{school_id}")
         return types
 
@@ -174,6 +193,7 @@ class DnevnikAPI(DnevnikBase):
                           school_id: int,
                           from_time: datetime = datetime.now(),
                           to_time: datetime = datetime.now()):
+        """Получение всех оценок в определенный период"""
         marks = self.get(
             f"persons/{person_id}/schools/{school_id}/marks/"
             f"{from_time}/"
@@ -182,9 +202,11 @@ class DnevnikAPI(DnevnikBase):
         return marks
 
     def get_subjects(self, edu_group_id: int):
+        """Получение всех предметов"""
         subjects = self.get(f'edu-groups/{edu_group_id}/subjects')
         return subjects
 
     def get_schedules(self, person_id: int, group_id: int, params: dict):
+        """Получение расписания на конкретную дату"""
         schedules = self.get(f'persons/{person_id}/groups/{group_id}/schedules', params=params)
         return schedules

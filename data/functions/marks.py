@@ -3,12 +3,14 @@ from .subjects import *
 
 
 def new_marks(sessionStorage, user_id, subject, res):
+    """Последние выставленные оценки"""
     marks = sessionStorage[user_id]['dnevnik'].get_last_marks(
         person_id=sessionStorage[user_id]['person_id'],
         group_id=sessionStorage[user_id]['edu_group']
     )['marks']
     dop = {}
     if subject is None:
+        # нет конкретного предмета
         for i in marks:
             if i['lesson'] is None:
                 continue
@@ -20,6 +22,7 @@ def new_marks(sessionStorage, user_id, subject, res):
                     else:
                         dop[dop_subject] = [i['value']]
     else:
+        # оценки по конкретному предмету
         for i in marks:
             if i['lesson'] is None:
                 continue
@@ -45,6 +48,7 @@ def new_marks(sessionStorage, user_id, subject, res):
 
 
 def get_marks(sessionStorage, user_id, subject, res, year=None, month=None, day=None, days=None):
+    """Основная функция получения оценок на конкретную дату"""
     if year is not None:
         marks = sessionStorage[user_id]['dnevnik'].get_marks_from_to(
             person_id=sessionStorage[user_id]['person_id'],
@@ -121,6 +125,7 @@ def get_marks(sessionStorage, user_id, subject, res, year=None, month=None, day=
     if len(marks):
         dop = {}
         if subject is None:
+            # предмет не выбран
             for j in marks:
                 lesson = sessionStorage[user_id]['dnevnik'].get_lesson(
                     j['lesson'])['subject']['name']
@@ -129,6 +134,7 @@ def get_marks(sessionStorage, user_id, subject, res, year=None, month=None, day=
                 else:
                     dop[lesson] = [j['value']]
         else:
+            # предмет выбран
             for j in marks:
                 lesson = sessionStorage[user_id]['dnevnik'].get_lesson(
                     j['lesson'])['subject']['name']
@@ -150,6 +156,7 @@ def get_marks(sessionStorage, user_id, subject, res, year=None, month=None, day=
 
 
 def old_marks(req, sessionStorage, user_id, subject, res):
+    """Получение оценок на конкретную дату"""
     for i in req['request']['nlu']['entities']:
         if i['type'] == 'YANDEX.DATETIME':
             if 'year_is_relative' in i['value'].keys():
@@ -197,11 +204,13 @@ def old_marks(req, sessionStorage, user_id, subject, res):
 
 
 def marks(req, sessionStorage, user_id, res):
+    """Оценки"""
     subject = get_subject(req['request']['original_utterance'].lower())
     if any(i in req['request']['original_utterance'].lower()
            for i in ['новые', 'последние']):
         # последние поставленные оценки
         new_marks(sessionStorage=sessionStorage, user_id=user_id, subject=subject, res=res)
         return
+    # выставвленные оценки
     old_marks(req=req, sessionStorage=sessionStorage, user_id=user_id, subject=subject, res=res)
     return

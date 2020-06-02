@@ -2,6 +2,7 @@ from datetime import datetime, timedelta
 
 
 def get_schedule(sessionStorage, user_id, res, year=None, month=None, day=None):
+    """Получение расписания на дату"""
     if year is None and month is None:
         date = datetime.now() + timedelta(days=day)
     elif year is None and month is not None:
@@ -44,6 +45,7 @@ def get_schedule(sessionStorage, user_id, res, year=None, month=None, day=None):
 
 
 def schedule(sessionStorage, req, user_id, res):
+    """Расписание"""
     for i in req['request']['nlu']['entities']:
         if i['type'] == 'YANDEX.DATETIME':
             if i['value']['day_is_relative']:
