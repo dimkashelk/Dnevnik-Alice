@@ -203,6 +203,14 @@ def old_marks(req, sessionStorage, user_id, subject, res):
     return
 
 
+def final_marks(req, sessionStorage, user_id, subject, res):
+    """Финальные оценки"""
+    final = sessionStorage['user_id']['dnevnik'].get_person_final_marks(
+        person_id=sessionStorage['user_id']['person_id'],
+        group_id=sessionStorage['user_id']['group_id']
+    )
+
+
 def marks(req, sessionStorage, user_id, res):
     """Оценки"""
     subject = get_subject(req['request']['original_utterance'].lower())
@@ -211,6 +219,7 @@ def marks(req, sessionStorage, user_id, res):
         # последние поставленные оценки
         new_marks(sessionStorage=sessionStorage, user_id=user_id, subject=subject, res=res)
         return
+
     # выставвленные оценки
     old_marks(req=req, sessionStorage=sessionStorage, user_id=user_id, subject=subject, res=res)
     return

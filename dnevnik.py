@@ -168,6 +168,10 @@ class DnevnikAPI(DnevnikBase):
         )
         return group_subject_marks
 
+    def get_person_final_marks(self, person_id: int, group_id: int):
+        final_marks = self.get(f"persons/{person_id}/edu-groups/{group_id}/allfinalmarks")
+        return final_marks
+
     def get_person(self, person_id: int):
         """Получение информации о персоне по id"""
         memberships = self.get(f"persons/{person_id}")
@@ -210,3 +214,7 @@ class DnevnikAPI(DnevnikBase):
         """Получение расписания на конкретную дату"""
         schedules = self.get(f'persons/{person_id}/groups/{group_id}/schedules', params=params)
         return schedules
+
+    def get_work_by_id(self, work_id: int):
+        work = self.get(f"works/{work_id}")
+        return work
