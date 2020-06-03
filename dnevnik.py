@@ -1,6 +1,5 @@
 import requests
 from datetime import datetime, timedelta
-from pprint import pprint
 
 
 class DnevnikError(Exception):
