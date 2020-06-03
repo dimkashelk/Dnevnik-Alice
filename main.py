@@ -83,6 +83,14 @@ def handle_dialog(req, res):
             # пользователь хочет увидеть оценки
             marks(req=req, sessionStorage=sessionStorage, user_id=user_id, res=res)
             return
+        elif any(i in req['request']['original_utterance'].lower()
+                 for i in ['выход', 'выйди']):
+            # выходим из аккаунта
+            sessionStorage[user_id] = None
+            res['response']['text'] = 'Я вышла из аккаунта, до скорой встречи'
+            res['response']['tts'] = 'я вышла из аккаунта до скорой встречи'
+            res['response']['end_session'] = True
+            return
         # не поняла пользователя
         res['response']['text'] = 'Я вас не поняла :('
         res['response']['tts'] = 'я вас не поняла'
