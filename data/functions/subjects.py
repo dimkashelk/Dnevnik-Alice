@@ -56,9 +56,9 @@ def get_subjects(req, subject_id=False):
     if not subject_id:
         # id: subject
         for i in req:
-            dop[i['id']] = i['name'].lower().split()[0]
+            dop[i['id']] = i['name'].lower()
     else:
         # subject: id
         for i in req:
-            dop[i['name'].lower().split()[0]] = i['id']
+            dop[i['name'].lower()] = i['id']
     return dop

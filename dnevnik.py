@@ -1,5 +1,6 @@
 import requests
 from datetime import datetime, timedelta
+from pprint import pprint
 
 
 class DnevnikError(Exception):
@@ -218,3 +219,7 @@ class DnevnikAPI(DnevnikBase):
     def get_work_by_id(self, work_id: int):
         work = self.get(f"works/{work_id}")
         return work
+
+    def get_marks_by_id(self, mark_id: int):
+        mark = self.get(f"marks/{mark_id}")
+        return mark
