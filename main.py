@@ -77,7 +77,10 @@ def handle_dialog(req, res):
         elif any(i in req['request']['original_utterance'].lower()
                  for i in ['урок', 'кабинет']):
             # пользователь требует конкретный урок
-            lesson()
+            lesson(req=req,
+                   sessionStorage=sessionStorage,
+                   user_id=user_id,
+                   res=res)
             return
         elif any(i in req['request']['original_utterance'].lower()
                  for i in ['дз', 'домашк', 'домашнее задание', 'задали', 'задание по']):
