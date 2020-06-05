@@ -6,6 +6,7 @@ from data.functions.schedule import *
 from data.functions.homework import *
 from data.functions.marks import *
 from data.functions.authorization import *
+from data.functions.page_of_lesson import *
 
 app = Flask(__name__)
 
@@ -72,6 +73,11 @@ def handle_dialog(req, res):
                for i in ['расписани']):
             # пользователь требует расписание
             schedule(req=req, user_id=user_id, res=res, sessionStorage=sessionStorage)
+            return
+        elif any(i in req['request']['original_utterance'].lower()
+                 for i in ['урок', 'кабинет']):
+            # пользователь требует конкретный урок
+            lesson()
             return
         elif any(i in req['request']['original_utterance'].lower()
                  for i in ['дз', 'домашк', 'домашнее задание', 'задали', 'задание по']):
