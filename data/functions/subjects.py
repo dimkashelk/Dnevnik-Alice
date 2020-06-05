@@ -2,6 +2,7 @@ import pymorphy2
 
 
 def get_subject(text):
+    """Получение предмета из контекста диалога"""
     if ' по ' in text:
         ind = text.split().index('по') + 1
         morph = pymorphy2.MorphAnalyzer()
@@ -11,6 +12,7 @@ def get_subject(text):
 
 
 def check_subjects(word1, word2):
+    """Сравнение двух слов"""
     morph = pymorphy2.MorphAnalyzer()
     word = morph.parse(word2)[0]
     try:
@@ -49,11 +51,14 @@ def check_subjects(word1, word2):
 
 
 def get_subjects(req, subject_id=False):
+    """Формирование словаря предметов"""
     dop = {}
     if not subject_id:
+        # id: subject
         for i in req:
-            dop[i['id']] = i['name'].lower().split()[0]
+            dop[i['id']] = i['name'].lower()
     else:
+        # subject: id
         for i in req:
-            dop[i['name'].lower().split()[0]] = i['id']
+            dop[i['name'].lower()] = i['id']
     return dop

@@ -3,12 +3,14 @@ from .subjects import *
 
 
 def new_marks(sessionStorage, user_id, subject, res):
+    """Последние выставленные оценки"""
     marks = sessionStorage[user_id]['dnevnik'].get_last_marks(
         person_id=sessionStorage[user_id]['person_id'],
         group_id=sessionStorage[user_id]['edu_group']
     )['marks']
     dop = {}
     if subject is None:
+        # нет конкретного предмета
         for i in marks:
             if i['lesson'] is None:
                 continue
@@ -20,6 +22,7 @@ def new_marks(sessionStorage, user_id, subject, res):
                     else:
                         dop[dop_subject] = [i['value']]
     else:
+        # оценки по конкретному предмету
         for i in marks:
             if i['lesson'] is None:
                 continue
@@ -45,6 +48,7 @@ def new_marks(sessionStorage, user_id, subject, res):
 
 
 def get_marks(sessionStorage, user_id, subject, res, year=None, month=None, day=None, days=None):
+    """Основная функция получения оценок на конкретную дату"""
     if year is not None:
         marks = sessionStorage[user_id]['dnevnik'].get_marks_from_to(
             person_id=sessionStorage[user_id]['person_id'],
@@ -121,6 +125,7 @@ def get_marks(sessionStorage, user_id, subject, res, year=None, month=None, day=
     if len(marks):
         dop = {}
         if subject is None:
+            # предмет не выбран
             for j in marks:
                 lesson = sessionStorage[user_id]['dnevnik'].get_lesson(
                     j['lesson'])['subject']['name']
@@ -129,6 +134,7 @@ def get_marks(sessionStorage, user_id, subject, res, year=None, month=None, day=
                 else:
                     dop[lesson] = [j['value']]
         else:
+            # предмет выбран
             for j in marks:
                 lesson = sessionStorage[user_id]['dnevnik'].get_lesson(
                     j['lesson'])['subject']['name']
@@ -150,6 +156,7 @@ def get_marks(sessionStorage, user_id, subject, res, year=None, month=None, day=
 
 
 def old_marks(req, sessionStorage, user_id, subject, res):
+    """Получение оценок на конкретную дату"""
     for i in req['request']['nlu']['entities']:
         if i['type'] == 'YANDEX.DATETIME':
             if 'year_is_relative' in i['value'].keys():
@@ -196,12 +203,82 @@ def old_marks(req, sessionStorage, user_id, subject, res):
     return
 
 
+def final_marks(req, sessionStorage, user_id, subject, res):
+    """Финальные оценки"""
+    final = sessionStorage[user_id]['dnevnik'].get_person_final_marks(
+        person_id=sessionStorage[user_id]['person_id'],
+        group_id=sessionStorage[user_id]['edu_group']
+    )
+    user_text = req['request']['original_utterance']
+    dict_marks = {}
+    if any([i in user_text for i in ['итог', 'год']]):
+        # пользователь хочет узнать годовую оценку
+        for i in final['marks']:
+            work = get_work_by_id(final['works'], i['work'])
+            if work is None:
+                continue
+            if work['periodType'] == 'Year':
+                dict_marks[sessionStorage[user_id]['id-subject'][work['subjectId']]] = \
+                    i['textValue']
+    else:
+        # показываем оценки за четверть или другой период обучения
+        period = 0
+        for i in req['request']['nlu']['entities']:
+            if i['type'] == 'YANDEX.NUMBER':
+                period = i['value']
+                break
+        if period:
+            for i in final['marks']:
+                work = get_work_by_id(final['works'], i['work'])
+                if work is None:
+                    continue
+                if work['periodNumber'] != period and work['periodType'] != 'Year':
+                    dict_marks[sessionStorage[user_id]['id-subject'][work['subjectId']]] = \
+                        i['textValue']
+        else:
+            res['response']['text'] = 'Оценок нет :('
+            res['response']['tts'] = 'оценок нет'
+            return
+    if subject is None:
+        res['response']['text'] = 'Ваши оценки:\n'
+        for j in dict_marks.keys():
+            res['response']['text'] += \
+                f'{j.capitalize()} - {", ".join(dict_marks[j])}\n'
+        res['response']['tts'] = 'ваши оценки'
+        return
+    else:
+        res['response']['text'] = 'Ваши оценки:\n'
+        for j in dict_marks.keys():
+            if check_subjects(j, subject):
+                res['response']['text'] += \
+                    f'{j.capitalize()} - {", ".join(dict_marks[j])}\n'
+        res['response']['tts'] = 'ваши оценки'
+        if res['response']['text'] == 'Ваши оценки:\n':
+            res['response']['text'] = 'Я поняла предмет :('
+            res['response']['tts'] = 'я не поняла предмет'
+            return
+        return
+
+
 def marks(req, sessionStorage, user_id, res):
+    """Оценки"""
     subject = get_subject(req['request']['original_utterance'].lower())
     if any(i in req['request']['original_utterance'].lower()
            for i in ['новые', 'последние']):
         # последние поставленные оценки
         new_marks(sessionStorage=sessionStorage, user_id=user_id, subject=subject, res=res)
         return
+    if any(i in req['request']['original_utterance'].lower()
+           for i in ['итог', 'год', 'финал', 'четверт', 'триместр']):
+        # итоговые оценки
+        final_marks(sessionStorage=sessionStorage, user_id=user_id, subject=subject, res=res, req=req)
+        return
+    # выставвленные оценки
     old_marks(req=req, sessionStorage=sessionStorage, user_id=user_id, subject=subject, res=res)
     return
+
+
+def get_work_by_id(works: list, work_id: int):
+    for i in works:
+        if i['id'] == work_id:
+            return i

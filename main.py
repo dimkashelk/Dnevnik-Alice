@@ -6,6 +6,7 @@ from data.functions.schedule import *
 from data.functions.homework import *
 from data.functions.marks import *
 from data.functions.authorization import *
+from data.functions.page_of_lesson import *
 
 app = Flask(__name__)
 
@@ -74,6 +75,11 @@ def handle_dialog(req, res):
             schedule(req=req, user_id=user_id, res=res, sessionStorage=sessionStorage)
             return
         elif any(i in req['request']['original_utterance'].lower()
+                 for i in ['урок', 'кабинет']):
+            # пользователь требует конкретный урок
+            lesson()
+            return
+        elif any(i in req['request']['original_utterance'].lower()
                  for i in ['дз', 'домашк', 'домашнее задание', 'задали', 'задание по']):
             # пользователь требует свою домашку
             homework(req=req, sessionStorage=sessionStorage, user_id=user_id, res=res)
@@ -82,6 +88,14 @@ def handle_dialog(req, res):
                  for i in ['оценки', 'поставили']):
             # пользователь хочет увидеть оценки
             marks(req=req, sessionStorage=sessionStorage, user_id=user_id, res=res)
+            return
+        elif any(i in req['request']['original_utterance'].lower()
+                 for i in ['выход', 'выйди']):
+            # выходим из аккаунта
+            sessionStorage[user_id] = None
+            res['response']['text'] = 'Я вышла из аккаунта, до скорой встречи'
+            res['response']['tts'] = 'я вышла из аккаунта до скорой встречи'
+            res['response']['end_session'] = True
             return
         # не поняла пользователя
         res['response']['text'] = 'Я вас не поняла :('
