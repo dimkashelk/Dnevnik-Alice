@@ -119,6 +119,7 @@ def lesson(req, sessionStorage, user_id, res):
 
 
 def get_time_of_lesson(sessionStorage, user_id, date, number_lesson):
+    """Получение времени урока"""
     schedules = sessionStorage[user_id]['dnevnik'].get_schedules(
         sessionStorage[user_id]['person_id'],
         sessionStorage[user_id]['edu_group'],
@@ -143,6 +144,7 @@ def get_time_of_lesson(sessionStorage, user_id, date, number_lesson):
 
 
 def get_number_lesson(date, req):
+    """Получение номера урока из речи """
     numbers, ans = [], 0
     for i in req['request']['nlu']['entities']:
         if i['type'] == 'YANDEX.NUMBER':
@@ -154,6 +156,7 @@ def get_number_lesson(date, req):
 
 
 def get_place_of_lesson(number_lesson, schedules):
+    """Получение кабинета, где проходит урок"""
     for i in schedules['days'][0]['lessons']:
         if i['number'] == number_lesson:
             return i['place']

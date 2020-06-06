@@ -216,9 +216,11 @@ class DnevnikAPI(DnevnikBase):
         return schedules
 
     def get_work_by_id(self, work_id: int):
+        """Получение работы на уроке по id"""
         work = self.get(f"works/{work_id}")
         return work
 
     def get_marks_by_id(self, mark_id: int):
+        """Получение оценки по ее id"""
         mark = self.get(f"marks/{mark_id}")
         return mark
