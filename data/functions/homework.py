@@ -58,40 +58,43 @@ def get_homework(sessionStorage, user_id, res, subject, days=None, months=None, 
 def homework(req, sessionStorage, user_id, res):
     """Основная функция получения домашнего задания"""
     subject = get_subject(req['request']['original_utterance'].lower())
-    for i in req['request']['nlu']['entities']:
-        if i['type'] == 'YANDEX.DATETIME':
-            if i['value']['day_is_relative']:
-                # домашка на один из ближайших дней
-                get_homework(sessionStorage=sessionStorage,
-                             user_id=user_id,
-                             res=res,
-                             subject=subject,
-                             days=i['value']['day'])
-                return
-            elif 'year_is_relative' in i['value'].keys():
-                if not i['value']['year_is_relative']:
-                    # домашка на конкретный дату: год, месяц, день
+    try:
+        for i in req['request']['nlu']['entities']:
+            if i['type'] == 'YANDEX.DATETIME':
+                if i['value']['day_is_relative']:
+                    # домашка на один из ближайших дней
+                    get_homework(sessionStorage=sessionStorage,
+                                 user_id=user_id,
+                                 res=res,
+                                 subject=subject,
+                                 days=i['value']['day'])
+                    return
+                elif 'year_is_relative' in i['value'].keys():
+                    if not i['value']['year_is_relative']:
+                        # домашка на конкретный дату: год, месяц, день
+                        get_homework(sessionStorage=sessionStorage,
+                                     user_id=user_id,
+                                     res=res,
+                                     subject=subject,
+                                     days=i['value']['day'],
+                                     months=i['value']['month'],
+                                     years=i['value']['year'])
+                        return
+                elif not i['value']['month_is_relative']:
+                    # домашка на конкретный месяц и дату
                     get_homework(sessionStorage=sessionStorage,
                                  user_id=user_id,
                                  res=res,
                                  subject=subject,
                                  days=i['value']['day'],
-                                 months=i['value']['month'],
-                                 years=i['value']['year'])
+                                 months=i['value']['month'])
                     return
-            elif not i['value']['month_is_relative']:
-                # домашка на конкретный месяц и дату
-                get_homework(sessionStorage=sessionStorage,
-                             user_id=user_id,
-                             res=res,
-                             subject=subject,
-                             days=i['value']['day'],
-                             months=i['value']['month'])
-                return
-            else:
-                res['response']['text'] = 'Я вас не поняла :('
-                res['response']['tts'] = 'я вас не поняла'
-                return
+                else:
+                    res['response']['text'] = 'Я вас не поняла :('
+                    res['response']['tts'] = 'я вас не поняла'
+                    return
+    except Exception:
+        pass
     res['response']['text'] = 'Я вас не поняла :('
     res['response']['tts'] = 'я вас не поняла'
     return

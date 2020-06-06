@@ -6,23 +6,28 @@ def lesson(req, sessionStorage, user_id, res):
     number_lesson, date = 0, datetime.now()
     # пытаемся дату урока
     date_fl = False
-    for i in req['request']['nlu']['entities']:
-        if i['type'] == 'YANDEX.DATETIME':
-            if i['value']['day_is_relative']:
-                # урок на ближайшую даты
-                date += timedelta(days=i['value']['day'])
-            elif 'year_is_relative' in i['value'].keys():
-                if not i['value']['year_is_relative']:
-                    # урок в конкретную дату: год, месяц, день
-                    date = datetime(year=i['value']['year'],
+    try:
+        for i in req['request']['nlu']['entities']:
+            if i['type'] == 'YANDEX.DATETIME':
+                if i['value']['day_is_relative']:
+                    # урок на ближайшую даты
+                    date += timedelta(days=i['value']['day'])
+                elif 'year_is_relative' in i['value'].keys():
+                    if not i['value']['year_is_relative']:
+                        # урок в конкретную дату: год, месяц, день
+                        date = datetime(year=i['value']['year'],
+                                        month=i['value']['month'],
+                                        day=i['value']['day'])
+                elif not i['value']['month_is_relative']:
+                    # урок на конкретный месяц и дату
+                    date = datetime(year=date.year,
                                     month=i['value']['month'],
                                     day=i['value']['day'])
-            elif not i['value']['month_is_relative']:
-                # урок на конкретный месяц и дату
-                date = datetime(year=date.year,
-                                month=i['value']['month'],
-                                day=i['value']['day'])
-            date_fl = True
+                date_fl = True
+    except Exception:
+        res['response']['text'] = 'Я вас не поняла :('
+        res['response']['tts'] = 'я вас не поняла'
+        return
     # если в том, что сказал пользователь есть конкретная дата и номер урока,
     # то в алисе есть проблема, она не может различить число от даты,
     # поэтому приходится использовать дополнительную функцию

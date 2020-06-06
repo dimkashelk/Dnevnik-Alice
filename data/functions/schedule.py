@@ -46,29 +46,32 @@ def get_schedule(sessionStorage, user_id, res, year=None, month=None, day=None):
 
 def schedule(sessionStorage, req, user_id, res):
     """Расписание"""
-    for i in req['request']['nlu']['entities']:
-        if i['type'] == 'YANDEX.DATETIME':
-            if i['value']['day_is_relative']:
-                get_schedule(sessionStorage=sessionStorage,
-                             user_id=user_id,
-                             res=res,
-                             day=i['value']['day'])
-                return
-            elif not i['value']['month_is_relative']:
-                get_schedule(sessionStorage=sessionStorage,
-                             user_id=user_id,
-                             res=res,
-                             day=i['value']['day'],
-                             month=i['value']['month'])
-                return
-            elif not i['value']['year_is_relative']:
-                get_schedule(sessionStorage=sessionStorage,
-                             user_id=user_id,
-                             res=res,
-                             day=i['value']['day'],
-                             month=i['value']['month'],
-                             year=i['value']['year'])
-                return
+    try:
+        for i in req['request']['nlu']['entities']:
+            if i['type'] == 'YANDEX.DATETIME':
+                if i['value']['day_is_relative']:
+                    get_schedule(sessionStorage=sessionStorage,
+                                 user_id=user_id,
+                                 res=res,
+                                 day=i['value']['day'])
+                    return
+                elif not i['value']['month_is_relative']:
+                    get_schedule(sessionStorage=sessionStorage,
+                                 user_id=user_id,
+                                 res=res,
+                                 day=i['value']['day'],
+                                 month=i['value']['month'])
+                    return
+                elif not i['value']['year_is_relative']:
+                    get_schedule(sessionStorage=sessionStorage,
+                                 user_id=user_id,
+                                 res=res,
+                                 day=i['value']['day'],
+                                 month=i['value']['month'],
+                                 year=i['value']['year'])
+                    return
+    except Exception:
+        pass
     res['response']['text'] = 'Я вас не поняла :('
     res['response']['tts'] = 'я вас не поняла'
     return

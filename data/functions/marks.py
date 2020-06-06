@@ -266,15 +266,27 @@ def marks(req, sessionStorage, user_id, res):
     if any(i in req['request']['original_utterance'].lower()
            for i in ['новые', 'последние']):
         # последние поставленные оценки
-        new_marks(sessionStorage=sessionStorage, user_id=user_id, subject=subject, res=res)
+        try:
+            new_marks(sessionStorage=sessionStorage, user_id=user_id, subject=subject, res=res)
+        except Exception:
+            res['response']['text'] = 'Я вас не поняла :('
+            res['response']['tts'] = 'я вас не поняла'
         return
     if any(i in req['request']['original_utterance'].lower()
            for i in ['итог', 'финал', 'четверт', 'триместр']):
         # итоговые оценки
-        final_marks(sessionStorage=sessionStorage, user_id=user_id, subject=subject, res=res, req=req)
+        try:
+            final_marks(sessionStorage=sessionStorage, user_id=user_id, subject=subject, res=res, req=req)
+        except Exception:
+            res['response']['text'] = 'Я вас не поняла :('
+            res['response']['tts'] = 'я вас не поняла'
         return
     # выставвленные оценки
-    old_marks(req=req, sessionStorage=sessionStorage, user_id=user_id, subject=subject, res=res)
+    try:
+        old_marks(req=req, sessionStorage=sessionStorage, user_id=user_id, subject=subject, res=res)
+    except Exception:
+        res['response']['text'] = 'Я вас не поняла :('
+        res['response']['tts'] = 'я вас не поняла'
     return
 
 

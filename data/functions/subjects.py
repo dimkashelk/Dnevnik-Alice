@@ -1,5 +1,4 @@
 import pymorphy2
-from datetime import datetime
 
 
 def get_subject(text):
