@@ -95,7 +95,9 @@ def handle_dialog(req, res):
         elif any(i in req['request']['original_utterance'].lower()
                  for i in ['выход', 'выйди']):
             # выходим из аккаунта
-            sessionStorage[user_id] = None
+            sessionStorage[user_id] = {
+                'authorized': False,
+            }
             res['response']['text'] = 'Я вышла из аккаунта, до скорой встречи'
             res['response']['tts'] = 'я вышла из аккаунта до скорой встречи'
             res['response']['end_session'] = True
@@ -113,8 +115,8 @@ def handle_dialog(req, res):
     else:
         # не поняла пользователя
         logging.info(f'Request: {request.json!r}')
-        res['response']['text'] = 'Я вас не поняла :('
-        res['response']['tts'] = 'я вас не поняла'
+        res['response']['text'] = 'Я вас не поняла, пожалуйста авторизуйтесь :('
+        res['response']['tts'] = 'я вас не поняла пожалуйста авторизуйтесь'
         return
 
 
