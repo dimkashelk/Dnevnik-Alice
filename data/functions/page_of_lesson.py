@@ -42,7 +42,7 @@ def lesson(req, sessionStorage, user_id, res):
                      hour=0,
                      minute=0,
                      second=0)),
-                'endDate': (
+            'endDate': (
                 datetime(year=date.year,
                          month=date.month,
                          day=date.day,
@@ -72,8 +72,13 @@ def lesson(req, sessionStorage, user_id, res):
         # сразу становится понятно на какую дату он просит)
         if len(schedules['days'][0]['lessons']):
             # берем из расписания конретный урок
-            les = sessionStorage[user_id]['dnevnik'].get_lesson(
-                schedules['days'][0]['lessons'][number_lesson - 1]['id'])
+            try:
+                les = sessionStorage[user_id]['dnevnik'].get_lesson(
+                    schedules['days'][0]['lessons'][number_lesson - 1]['id'])
+            except IndexError:
+                res['response']['text'] = 'Такого урока нет :('
+                res['response']['tts'] = 'такого урока нет'
+                return
         else:
             res['response']['text'] = 'Урок не доступен :('
             res['response']['tts'] = 'урок не доступен'
