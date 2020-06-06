@@ -42,7 +42,7 @@ def lesson(req, sessionStorage, user_id, res):
                      hour=0,
                      minute=0,
                      second=0)),
-            'endDate': (
+                'endDate': (
                 datetime(year=date.year,
                          month=date.month,
                          day=date.day,
