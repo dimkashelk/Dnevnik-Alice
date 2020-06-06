@@ -133,9 +133,9 @@ def get_buttons(obj: str):
 def rules(rul: str):
     # правила
     text = []
-    with open(f'./data/usage_rules/text/{rules_to_en[rul]}', encoding='utf-8') as file:
+    with open(f'./data/usage_rules/text/{rules_to_en[rul]}.txt', encoding='utf-8') as file:
         text.append(file.read())
-    with open(f'./data/usage_rules/tts/{rules_to_en[rul]}', encoding='utf-8') as file:
+    with open(f'./data/usage_rules/tts/{rules_to_en[rul]}.txt', encoding='utf-8') as file:
         text.append(file.read())
     return text
 
