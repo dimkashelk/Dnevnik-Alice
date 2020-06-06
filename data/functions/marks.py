@@ -269,7 +269,7 @@ def marks(req, sessionStorage, user_id, res):
         new_marks(sessionStorage=sessionStorage, user_id=user_id, subject=subject, res=res)
         return
     if any(i in req['request']['original_utterance'].lower()
-           for i in ['итог', 'год', 'финал', 'четверт', 'триместр']):
+           for i in ['итог', 'финал', 'четверт', 'триместр']):
         # итоговые оценки
         final_marks(sessionStorage=sessionStorage, user_id=user_id, subject=subject, res=res, req=req)
         return
