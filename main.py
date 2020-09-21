@@ -1,3 +1,4 @@
+import subprocess
 from flask import Flask, request
 import logging
 import json
@@ -13,6 +14,12 @@ app = Flask(__name__)
 logging.basicConfig(level=logging.INFO, filename='app.log')
 
 sessionStorage = {}
+
+
+@app.route('/update')
+def update():
+    process = subprocess.Popen('/bin/bash update_from_git.sh'.split())
+    return 'request accepted'
 
 
 @app.route('/', methods=['POST'])
