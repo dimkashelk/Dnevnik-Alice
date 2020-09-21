@@ -1,5 +1,5 @@
 import subprocess
-from flask import Flask, request
+from flask import Flask, request, send_file
 import logging
 import json
 from data.const import *
@@ -14,6 +14,11 @@ app = Flask(__name__)
 logging.basicConfig(level=logging.INFO, filename='app.log')
 
 sessionStorage = {}
+
+
+@app.route('/log')
+def get_log():
+    return send_file('app.log')
 
 
 @app.route('/update')
