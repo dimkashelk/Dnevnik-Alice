@@ -21,6 +21,11 @@ def get_log():
     return send_file('app.log')
 
 
+@app.route('/log/<filename>')
+def get_file(filename):
+    return send_file(filename)
+
+
 @app.route('/update')
 def update():
     process = subprocess.Popen('/bin/bash update_from_git.sh'.split())
@@ -58,81 +63,84 @@ def handle_dialog(req, res):
                                  'пожалуйста ознакомься с инструкцией чтобы избежать ' \
                                  'недопоним+аний в разговоре'
         return
-    if any(i in req['request']['original_utterance'].lower()
-           for i in ['инструкц', 'правила']):
-        # пользователь просит инструкцию
-        logging.info(f'Request: {request.json!r}')
-        dop = ''
-        for i, val in enumerate(rules_ru):
-            dop += f'{i + 1}) {val.capitalize()}\n'
-        dop = dop.strip()
-        res['response']['text'] = 'У меня очень много правил, но они все маленькие и простые. ' \
-                                  'Из-за их количества пришлось разбить их на отдельные ' \
-                                  'категории:\n' + dop
-        res['response']['tts'] = 'у меня очень много правил но они все маленькие и простые ' \
-                                 'изза их количества пришлось разб+ить их на отдельные катег+ории ' \
-                                 '' \
-                                 'просто ' \
-                                 'выберите из предложенного что вас больше всего интересует'
-        res['response']['buttons'] = get_buttons('rules')
-    elif req['request']['original_utterance'].lower() in rules_ru:
-        # пользователь выбрал конкретный пункт правил
-        logging.info(f'Request: {request.json!r}')
-        dop = rules(req['request']['original_utterance'].lower())
-        res['response']['text'] = dop[0]
-        res['response']['tts'] = dop[1]
-    elif sessionStorage[user_id]['authorized']:
-        # блок если наш пользователь авторизован, пытаем чего он хочет дальше
-        logging.info(f'Request: {request.json!r}')
+    try:
         if any(i in req['request']['original_utterance'].lower()
-               for i in ['расписани']):
-            # пользователь требует расписание
-            schedule(req=req, user_id=user_id, res=res, sessionStorage=sessionStorage)
+               for i in ['инструкц', 'правила']):
+            # пользователь просит инструкцию
+            logging.info(f'Request: {request.json!r}')
+            dop = ''
+            for i, val in enumerate(rules_ru):
+                dop += f'{i + 1}) {val.capitalize()}\n'
+            dop = dop.strip()
+            res['response']['text'] = 'У меня очень много правил, но они все маленькие и простые. ' \
+                                      'Из-за их количества пришлось разбить их на отдельные ' \
+                                      'категории:\n' + dop
+            res['response']['tts'] = 'у меня очень много правил но они все маленькие и простые ' \
+                                     'изза их количества пришлось разб+ить их на отдельные катег+ории ' \
+                                     '' \
+                                     'просто ' \
+                                     'выберите из предложенного что вас больше всего интересует'
+            res['response']['buttons'] = get_buttons('rules')
+        elif req['request']['original_utterance'].lower() in rules_ru:
+            # пользователь выбрал конкретный пункт правил
+            logging.info(f'Request: {request.json!r}')
+            dop = rules(req['request']['original_utterance'].lower())
+            res['response']['text'] = dop[0]
+            res['response']['tts'] = dop[1]
+        elif sessionStorage[user_id]['authorized']:
+            # блок если наш пользователь авторизован, пытаем чего он хочет дальше
+            logging.info(f'Request: {request.json!r}')
+            if any(i in req['request']['original_utterance'].lower()
+                   for i in ['расписани']):
+                # пользователь требует расписание
+                schedule(req=req, user_id=user_id, res=res, sessionStorage=sessionStorage)
+                return
+            elif any(i in req['request']['original_utterance'].lower()
+                     for i in ['урок', 'кабинет']):
+                # пользователь требует конкретный урок
+                lesson(req=req,
+                       sessionStorage=sessionStorage,
+                       user_id=user_id,
+                       res=res)
+                return
+            elif any(i in req['request']['original_utterance'].lower()
+                     for i in ['дз', 'домашк', 'домашнее задание', 'задали', 'задание по']):
+                # пользователь требует свою домашку
+                homework(req=req, sessionStorage=sessionStorage, user_id=user_id, res=res)
+                return
+            elif any(i in req['request']['original_utterance'].lower()
+                     for i in ['оценки', 'поставили']):
+                # пользователь хочет увидеть оценки
+                marks(req=req, sessionStorage=sessionStorage, user_id=user_id, res=res)
+                return
+            elif any(i in req['request']['original_utterance'].lower()
+                     for i in ['выход', 'выйди']):
+                # выходим из аккаунта
+                sessionStorage[user_id] = {
+                    'authorized': False,
+                }
+                res['response']['text'] = 'Я вышла из аккаунта, до скорой встречи'
+                res['response']['tts'] = 'я вышла из аккаунта до скорой встречи'
+                res['response']['end_session'] = True
+                return
+            # не поняла пользователя
+            res['response']['text'] = 'Я вас не поняла :('
+            res['response']['tts'] = 'я вас не поняла'
             return
-        elif any(i in req['request']['original_utterance'].lower()
-                 for i in ['урок', 'кабинет']):
-            # пользователь требует конкретный урок
-            lesson(req=req,
-                   sessionStorage=sessionStorage,
-                   user_id=user_id,
-                   res=res)
+        elif sessionStorage[user_id]['authorized'] is False and \
+                len(req['request']['original_utterance'].split()) == 2 and \
+                req['request']['original_utterance'].split()[0].lower() not in rules_ru and \
+                req['request']['original_utterance'].split()[1].lower() not in rules_ru:
+            # авторизация по логину и паролю
+            authorization(req=req, sessionStorage=sessionStorage, user_id=user_id, res=res)
+        else:
+            # не поняла пользователя
+            logging.info(f'Request: {request.json!r}')
+            res['response']['text'] = 'Я вас не поняла, пожалуйста авторизуйтесь :('
+            res['response']['tts'] = 'я вас не поняла пожалуйста авторизуйтесь'
             return
-        elif any(i in req['request']['original_utterance'].lower()
-                 for i in ['дз', 'домашк', 'домашнее задание', 'задали', 'задание по']):
-            # пользователь требует свою домашку
-            homework(req=req, sessionStorage=sessionStorage, user_id=user_id, res=res)
-            return
-        elif any(i in req['request']['original_utterance'].lower()
-                 for i in ['оценки', 'поставили']):
-            # пользователь хочет увидеть оценки
-            marks(req=req, sessionStorage=sessionStorage, user_id=user_id, res=res)
-            return
-        elif any(i in req['request']['original_utterance'].lower()
-                 for i in ['выход', 'выйди']):
-            # выходим из аккаунта
-            sessionStorage[user_id] = {
-                'authorized': False,
-            }
-            res['response']['text'] = 'Я вышла из аккаунта, до скорой встречи'
-            res['response']['tts'] = 'я вышла из аккаунта до скорой встречи'
-            res['response']['end_session'] = True
-            return
-        # не поняла пользователя
-        res['response']['text'] = 'Я вас не поняла :('
-        res['response']['tts'] = 'я вас не поняла'
-        return
-    elif sessionStorage[user_id]['authorized'] is False and \
-            len(req['request']['original_utterance'].split()) == 2 and \
-            req['request']['original_utterance'].split()[0].lower() not in rules_ru and \
-            req['request']['original_utterance'].split()[1].lower() not in rules_ru:
-        # авторизация по логину и паролю
-        authorization(req=req, sessionStorage=sessionStorage, user_id=user_id, res=res)
-    else:
-        # не поняла пользователя
-        logging.info(f'Request: {request.json!r}')
-        res['response']['text'] = 'Я вас не поняла, пожалуйста авторизуйтесь :('
-        res['response']['tts'] = 'я вас не поняла пожалуйста авторизуйтесь'
-        return
+    except KeyError:
+        print(sessionStorage, file=open('session.txt', 'w'))
 
 
 def get_buttons(obj: str):
