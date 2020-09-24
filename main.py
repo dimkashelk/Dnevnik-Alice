@@ -141,6 +141,7 @@ def handle_dialog(req, res):
             return
     except KeyError:
         print(sessionStorage, file=open('session.txt', 'w'))
+        res['response']['text'] = 'Опять долбанная индексация...'
 
 
 def get_buttons(obj: str):
