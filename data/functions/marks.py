@@ -16,11 +16,14 @@ def new_marks(sessionStorage, user_id, subject, res):
                 continue
             else:
                 if datetime.now().strftime('%Y-%m-%d') in i['date']:
-                    dop_subject = sessionStorage[user_id]['id-subject'][i['lesson']]
+                    lesson = sessionStorage[user_id]['dnevnik'].get_lesson(i['lesson'])['subject']['id']
+                    dop_subject = sessionStorage[user_id]['id-subject'][lesson]
                     if dop.get(dop_subject, False):
                         dop[dop_subject].append(i['value'])
                     else:
                         dop[dop_subject] = [i['value']]
+            if datetime.now().strftime('%Y-%m-%d') not in i['date']:
+                break
     else:
         # оценки по конкретному предмету
         for i in marks:
@@ -28,13 +31,16 @@ def new_marks(sessionStorage, user_id, subject, res):
                 continue
             else:
                 if datetime.now().strftime('%Y-%m-%d') in i['date']:
-                    dop_subject = sessionStorage[user_id]['id-subject'][i['lesson']]
+                    lesson = sessionStorage[user_id]['dnevnik'].get_lesson(i['lesson'])['subject']['id']
+                    dop_subject = sessionStorage[user_id]['id-subject'][lesson]
                     if not check_subjects(dop_subject, subject):
                         continue
                     if dop.get(dop_subject, False):
                         dop[dop_subject].append(i['value'])
                     else:
                         dop[dop_subject] = [i['value']]
+            if datetime.now().strftime('%Y-%m-%d') not in i['date']:
+                break
     if len(dop.keys()):
         res['response']['text'] = 'Ваши оценки:\n'
         res['response']['tts'] = 'Ваши оценки'
@@ -254,7 +260,7 @@ def final_marks(req, sessionStorage, user_id, subject, res):
                     f'{j.capitalize()} - {", ".join(dict_marks[j])}\n'
         res['response']['tts'] = 'ваши оценки'
         if res['response']['text'] == 'Ваши оценки:\n':
-            res['response']['text'] = 'Я поняла предмет :('
+            res['response']['text'] = 'Я не поняла предмет :('
             res['response']['tts'] = 'я не поняла предмет'
             return
         return
@@ -268,12 +274,13 @@ def marks(req, sessionStorage, user_id, res):
         # последние поставленные оценки
         try:
             new_marks(sessionStorage=sessionStorage, user_id=user_id, subject=subject, res=res)
-        except Exception:
+        except Exception as e:
+            print(e)
             res['response']['text'] = 'Я вас не поняла :('
             res['response']['tts'] = 'я вас не поняла'
         return
     if any(i in req['request']['original_utterance'].lower()
-           for i in ['итог', 'финал', 'четверт', 'триместр']):
+           for i in ['итог', 'финал', 'четверт', 'триместр', 'семестр']):
         # итоговые оценки
         try:
             final_marks(sessionStorage=sessionStorage, user_id=user_id, subject=subject, res=res, req=req)

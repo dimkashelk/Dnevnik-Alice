@@ -2,6 +2,7 @@ import pymorphy2
 
 
 def get_subject(text):
+    # TODO: нормальный определитель предмета
     """Получение предмета из контекста диалога"""
     if ' по ' in text:
         ind = text.split().index('по') + 1

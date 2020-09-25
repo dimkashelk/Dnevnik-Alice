@@ -19,7 +19,7 @@ def authorization(req, sessionStorage, user_id, res):
         sessionStorage[user_id]['dnevnik'].get_school()[0]['id']
     # получаем id образовательной группы
     sessionStorage[user_id]['edu_group'] = \
-        sessionStorage[user_id]['dnevnik'].get_edu_groups()[1]
+        sessionStorage[user_id]['dnevnik'].get_edu_group()
     # получение персонального id
     sessionStorage[user_id]['person_id'] = \
         sessionStorage[user_id]['dnevnik'].get_info_about_me()['personId']

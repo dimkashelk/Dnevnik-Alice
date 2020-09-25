@@ -39,7 +39,7 @@ def main():
         'version': request.json['version'],
         'response': {
             'end_session': False
-        }
+    }
     }
     handle_dialog(request.json, response)
     logging.info(f'Response:  {response!r}')
@@ -51,7 +51,7 @@ def handle_dialog(req, res):
     # не user -> user_id, потому что пользователь может быть не авторизован в яндекс аккаунт.
     # теперь привязка будет к конкретному устройству.
     user_id = req['session']['application']['application_id']
-    if req['session']['new']:
+    if req['session']['new'] and user_id not in sessionStorage.keys():
         # поймали нового пользователя
         new_user(res=res, user_id=user_id)
         return
@@ -59,9 +59,9 @@ def handle_dialog(req, res):
         authorized_user(res=res, req=req, user_id=user_id)
     except KeyError:
         # долбанные словари Python, удаляются без причины...
-        print(sessionStorage, file=open('session.txt', 'w'))
+        print(sessionStorage)
         new_user(res=res, user_id=user_id)
-        res['response']['text'] = 'Пожалуйста, авторизуйтесь снова'
+        res['response']['text'] = 'Краш сервака, короче не надо сейчас трогать навык :('
 
 
 def new_user(res, user_id):
@@ -91,7 +91,6 @@ def authorized_user(res, req, user_id):
                                   'категории:\n' + dop
         res['response']['tts'] = 'у меня очень много правил но они все маленькие и простые ' \
                                  'изза их количества пришлось разб+ить их на отдельные катег+ории ' \
-                                 '' \
                                  'просто ' \
                                  'выберите из предложенного что вас больше всего интересует'
         res['response']['buttons'] = get_buttons('rules')

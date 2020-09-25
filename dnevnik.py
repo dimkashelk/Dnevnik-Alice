@@ -224,3 +224,7 @@ class DnevnikAPI(DnevnikBase):
         """Получение оценки по ее id"""
         mark = self.get(f"marks/{mark_id}")
         return mark
+
+    def get_edu_group(self):
+        edu_group = self.get('users/me/context')['eduGroups'][0]['id']
+        return edu_group
