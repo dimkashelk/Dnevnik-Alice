@@ -1,5 +1,6 @@
 from dnevnik import DnevnikAPI, DnevnikError
 from .subjects import get_subjects
+from .phrases import get_random_phrases
 
 
 def authorization(req, sessionStorage, user_id, res):
@@ -30,6 +31,6 @@ def authorization(req, sessionStorage, user_id, res):
     sessionStorage[user_id]['id-subject'] = get_subjects(dop)
     # словарь subject: id
     sessionStorage[user_id]['subject-id'] = get_subjects(dop, subject_id=True)
-    res['response']['text'] = 'Вы авторизовались и я подключена к дневнику!'
-    res['response']['tts'] = 'вы авторизов+ались и я подключена к дневнику'
+    dop = get_random_phrases('authorization')
+    res['response']['text'], res['response']['tts'] = dop, dop
     return

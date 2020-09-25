@@ -1,5 +1,6 @@
 from datetime import datetime, timedelta
 from .subjects import *
+from .phrases import *
 
 
 def get_homework(sessionStorage, user_id, res, subject, days=None, months=None, years=None):
@@ -37,10 +38,11 @@ def get_homework(sessionStorage, user_id, res, subject, days=None, months=None, 
             homework[dop['subjects'][0]['name']] = [dop['works'][0]['text'].strip()]
     if len(homework.keys()) == 0:
         # если заданий не нашлось
-        res['response']['text'] = 'Заданий нет'
-        res['response']['tts'] = 'Заданий нет'
+        dop_phrase = get_random_phrases('no_homework')
+        res['response']['text'] = res['response']['tts'] = dop_phrase
         return
-    dop = 'Вот ваши задания:\n'
+    phrase = get_random_phrases('homework')
+    dop = phrase
     if subject is None:
         # пользователь хочет дз по всем предмета
         for v in homework.keys():
@@ -51,7 +53,7 @@ def get_homework(sessionStorage, user_id, res, subject, days=None, months=None, 
                              homework.keys())):
             dop += f'{v.capitalize()}: {"; ".join(homework[v])}\n'
     res['response']['text'] = dop
-    res['response']['tts'] = 'вот ваши домашние задания'
+    res['response']['tts'] = phrase
     return
 
 
@@ -90,11 +92,9 @@ def homework(req, sessionStorage, user_id, res):
                                  months=i['value']['month'])
                     return
                 else:
-                    res['response']['text'] = 'Я вас не поняла :('
-                    res['response']['tts'] = 'я вас не поняла'
+                    res['response']['text'] = res['response']['tts'] = get_random_phrases('not_understand')
                     return
     except Exception:
         pass
-    res['response']['text'] = 'Я вас не поняла :('
-    res['response']['tts'] = 'я вас не поняла'
+    res['response']['text'] = res['response']['tts'] = get_random_phrases('not_understand')
     return

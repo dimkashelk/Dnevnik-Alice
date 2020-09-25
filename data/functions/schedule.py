@@ -1,5 +1,5 @@
 from datetime import datetime, timedelta
-
+from .phrases import *
 
 def get_schedule(sessionStorage, user_id, res, year=None, month=None, day=None):
     """Получение расписания на дату"""
@@ -32,15 +32,13 @@ def get_schedule(sessionStorage, user_id, res, year=None, month=None, day=None):
                          second=59))}
     )
     if len(schedules['days'][0]['lessons']):
-        res['response']['text'] = 'Ваше расписание:\n'
+        res['response']['text'] = res['response']['tts'] = get_random_phrases('schedule')
         for j in schedules['days'][0]['lessons']:
             dop = sessionStorage[user_id]['dnevnik'].get_lesson(j['id'])
             res['response']['text'] += j['hours'] + ' ' + dop['subject']['name'] + '\n'
-        res['response']['tts'] = 'ваше расписание'
         return
     else:
-        res['response']['text'] = 'Расписание не доступно'
-        res['response']['tts'] = 'Расписание не доступно'
+        res['response']['text'] = res['response']['tts'] = get_random_phrases('schedule_is_not_available')
         return
 
 
@@ -72,6 +70,5 @@ def schedule(sessionStorage, req, user_id, res):
                     return
     except Exception:
         pass
-    res['response']['text'] = 'Я вас не поняла :('
-    res['response']['tts'] = 'я вас не поняла'
+    res['response']['text'] = res['response']['tts'] = get_random_phrases('not_understand')
     return

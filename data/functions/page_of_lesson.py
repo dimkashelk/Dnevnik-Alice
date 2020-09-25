@@ -1,4 +1,5 @@
 from datetime import datetime, timedelta
+from .phrases import *
 
 
 def lesson(req, sessionStorage, user_id, res):
@@ -25,8 +26,7 @@ def lesson(req, sessionStorage, user_id, res):
                                     day=i['value']['day'])
                 date_fl = True
     except Exception:
-        res['response']['text'] = 'Я вас не поняла :('
-        res['response']['tts'] = 'я вас не поняла'
+        res['response']['text'] = res['response']['tts'] = get_random_phrases('not_understand')
         return
     # если в том, что сказал пользователь есть конкретная дата и номер урока,
     # то в алисе есть проблема, она не может различить число от даты,
@@ -34,8 +34,7 @@ def lesson(req, sessionStorage, user_id, res):
     number_lesson = get_number_lesson(date, req)
     if not number_lesson:
         # если не нашли номер, то выдаем сообщение об ошибке
-        res['response']['text'] = 'Я вас не поняла :('
-        res['response']['tts'] = 'я вас не поняла'
+        res['response']['text'] = res['response']['tts'] = get_random_phrases('not_understand')
         return
     schedules = sessionStorage[user_id]['dnevnik'].get_schedules(
         sessionStorage[user_id]['person_id'],
@@ -47,7 +46,7 @@ def lesson(req, sessionStorage, user_id, res):
                      hour=0,
                      minute=0,
                      second=0)),
-            'endDate': (
+                'endDate': (
                 datetime(year=date.year,
                          month=date.month,
                          day=date.day,
@@ -58,8 +57,7 @@ def lesson(req, sessionStorage, user_id, res):
     if not date_fl:
         # Нужно для открытия конкретного урока после расписания на сегодня
         if not len(schedules['days'][0]['lessons']):
-            res['response']['text'] = 'Уроков нет :('
-            res['response']['tts'] = 'уроков нет'
+            res['response']['text'] = res['response']['tts'] = get_random_phrases('no_lessons')
             return
         fl = False
         for i in schedules['days'][0]['lessons']:
@@ -68,8 +66,7 @@ def lesson(req, sessionStorage, user_id, res):
                 fl = True
                 place = i['place']
         if not fl:
-            res['response']['text'] = 'Такого урока нет :('
-            res['response']['tts'] = 'такого урока нет'
+            res['response']['text'] = res['response']['tts'] = get_random_phrases('no_lesson')
             return
     else:
         # скорее всего пользователь хочет урок на конретную дату
@@ -81,12 +78,10 @@ def lesson(req, sessionStorage, user_id, res):
                 les = sessionStorage[user_id]['dnevnik'].get_lesson(
                     schedules['days'][0]['lessons'][number_lesson - 1]['id'])
             except IndexError:
-                res['response']['text'] = 'Такого урока нет :('
-                res['response']['tts'] = 'такого урока нет'
+                res['response']['text'] = res['response']['tts'] = get_random_phrases('no_lesson')
                 return
         else:
-            res['response']['text'] = 'Урок не доступен :('
-            res['response']['tts'] = 'урок не доступен'
+            res['response']['text'] = res['response']['tts'] = get_random_phrases('no_lesson')
             return
         place = get_place_of_lesson(number_lesson, schedules)
     teachers = []
@@ -108,13 +103,13 @@ def lesson(req, sessionStorage, user_id, res):
                                             day=day),
                               number_lesson=number_lesson)
     res['response']['text'] = f"Время: {time}\n" \
-        f"Кабинет: {place}\n" \
-        f"Урок: {les['subject']['name']}\n" \
-        f"{'Учителя' if len(teachers) > 1 else 'Учитель'}: {'; '.join(teachers)}\n" \
-        f"Тема занятий: {les['title']}\n" \
-        f"{'Домашние задания' if len(homeworks) > 1 else 'Домашнее задание'}: " \
-        f"{'; '.join(homeworks)}"
-    res['response']['tts'] = 'Страница урока'
+                              f"Кабинет: {place}\n" \
+                              f"Урок: {les['subject']['name']}\n" \
+                              f"{'Учителя' if len(teachers) > 1 else 'Учитель'}: {'; '.join(teachers)}\n" \
+                              f"Тема занятий: {les['title']}\n" \
+                              f"{'Домашние задания' if len(homeworks) > 1 else 'Домашнее задание'}: " \
+                              f"{'; '.join(homeworks)}"
+    res['response']['tts'] = get_random_phrases('page_lesson')
     return
 
 
@@ -130,7 +125,7 @@ def get_time_of_lesson(sessionStorage, user_id, date, number_lesson):
                      hour=0,
                      minute=0,
                      second=0)),
-            'endDate': (
+                'endDate': (
                 datetime(year=date.year,
                          month=date.month,
                          day=date.day,

@@ -1,5 +1,6 @@
 from datetime import datetime, timedelta
 from .subjects import *
+from .phrases import *
 
 
 def new_marks(sessionStorage, user_id, subject, res):
@@ -42,14 +43,12 @@ def new_marks(sessionStorage, user_id, subject, res):
             if datetime.now().strftime('%Y-%m-%d') not in i['date']:
                 break
     if len(dop.keys()):
-        res['response']['text'] = 'Ваши оценки:\n'
-        res['response']['tts'] = 'Ваши оценки'
+        res['response']['text'] = res['response']['tts'] = get_random_phrases('new_marks')
         for i in dop.keys():
             res['response']['text'] += f'{i.capitalize()} - {", ".join(dop[i])}\n'
         return
     else:
-        res['response']['text'] = 'За сегодня ничего не поставили :('
-        res['response']['tts'] = 'За сегодня ничего не поставили'
+        res['response']['text'] = res['response']['tts'] = get_random_phrases('nothing_is_exposed')
         return
 
 
@@ -149,15 +148,15 @@ def get_marks(sessionStorage, user_id, subject, res, year=None, month=None, day=
                         dop[lesson].append(j['value'])
                     else:
                         dop[lesson] = [j['value']]
-        res['response']['text'] = 'Ваши оценки:\n'
+        dop_phrase = get_random_phrases('marks')
+        res['response']['text'] = dop_phrase
         for j in dop.keys():
             res['response'][
                 'text'] += f'{j.capitalize()} - {", ".join(dop[j])}\n'
-        res['response']['tts'] = 'ваши оценки'
+        res['response']['tts'] = dop_phrase
         return
     else:
-        res['response']['text'] = 'Оценок нет :('
-        res['response']['tts'] = 'оценок нет'
+        res['response']['text'] = res['response']['tts'] = get_random_phrases('no_marks')
         return
 
 
@@ -177,8 +176,7 @@ def old_marks(req, sessionStorage, user_id, subject, res):
                                   day=i['value']['day'])
                         return
                     else:
-                        res['response']['text'] = 'Оценок нет :('
-                        res['response']['tts'] = 'оценок нет'
+                        res['response']['text'] = res['response']['tts'] = get_random_phrases('no_marks')
                         return
             elif 'month_is_relative' in i['value'].keys():
                 if not i['value']['month_is_relative']:
@@ -204,8 +202,7 @@ def old_marks(req, sessionStorage, user_id, subject, res):
                               res=res,
                               days=i['value']['day'])
                     return
-    res['response']['text'] = 'Я вас не поняла :('
-    res['response']['tts'] = 'я вас не поняла'
+    res['response']['text'] = res['response']['tts'] = get_random_phrases('not_understand')
     return
 
 
@@ -242,26 +239,25 @@ def final_marks(req, sessionStorage, user_id, subject, res):
                     dict_marks[sessionStorage[user_id]['id-subject'][work['subjectId']]] = \
                         i['textValue']
         else:
-            res['response']['text'] = 'Оценок нет :('
-            res['response']['tts'] = 'оценок нет'
+            res['response']['text'], res['response']['tts'] = get_random_phrases('no_marks')
             return
+    dop_phrase = get_random_phrases('marks')
     if subject is None:
-        res['response']['text'] = 'Ваши оценки:\n'
+        res['response']['text'] = dop_phrase
         for j in dict_marks.keys():
             res['response']['text'] += \
                 f'{j.capitalize()} - {", ".join(dict_marks[j])}\n'
-        res['response']['tts'] = 'ваши оценки'
+        res['response']['tts'] = dop_phrase
         return
     else:
-        res['response']['text'] = 'Ваши оценки:\n'
+        res['response']['text'] = dop_phrase
         for j in dict_marks.keys():
             if check_subjects(j, subject):
                 res['response']['text'] += \
                     f'{j.capitalize()} - {", ".join(dict_marks[j])}\n'
-        res['response']['tts'] = 'ваши оценки'
-        if res['response']['text'] == 'Ваши оценки:\n':
-            res['response']['text'] = 'Я не поняла предмет :('
-            res['response']['tts'] = 'я не поняла предмет'
+        res['response']['tts'] = dop_phrase
+        if res['response']['text'] == dop_phrase:
+            res['response']['text'] = res['response']['tts'] = get_random_phrases('not_understand_subject')
             return
         return
 
@@ -276,8 +272,7 @@ def marks(req, sessionStorage, user_id, res):
             new_marks(sessionStorage=sessionStorage, user_id=user_id, subject=subject, res=res)
         except Exception as e:
             print(e)
-            res['response']['text'] = 'Я вас не поняла :('
-            res['response']['tts'] = 'я вас не поняла'
+            res['response']['text'] = res['response']['tts'] = get_random_phrases('not_understand')
         return
     if any(i in req['request']['original_utterance'].lower()
            for i in ['итог', 'финал', 'четверт', 'триместр', 'семестр']):
@@ -285,15 +280,13 @@ def marks(req, sessionStorage, user_id, res):
         try:
             final_marks(sessionStorage=sessionStorage, user_id=user_id, subject=subject, res=res, req=req)
         except Exception:
-            res['response']['text'] = 'Я вас не поняла :('
-            res['response']['tts'] = 'я вас не поняла'
+            res['response']['text'] = res['response']['tts'] = get_random_phrases('not_understand')
         return
-    # выставвленные оценки
+    # выставленные оценки
     try:
         old_marks(req=req, sessionStorage=sessionStorage, user_id=user_id, subject=subject, res=res)
     except Exception:
-        res['response']['text'] = 'Я вас не поняла :('
-        res['response']['tts'] = 'я вас не поняла'
+        res['response']['text'] = res['response']['tts'] = get_random_phrases('not_understand')
     return
 
 

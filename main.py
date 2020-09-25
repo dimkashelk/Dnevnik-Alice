@@ -2,7 +2,7 @@ import subprocess
 from flask import Flask, request, send_file
 import logging
 import json
-from data.const import *
+from data.functions.const import *
 from data.functions.schedule import *
 from data.functions.homework import *
 from data.functions.marks import *
@@ -99,7 +99,7 @@ def authorized_user(res, req, user_id):
         logging.info(f'Request: {request.json!r}')
         dop = rules(req['request']['original_utterance'].lower())
         res['response']['text'] = dop[0]
-        res['response']['tts'] = dop[1]
+        res['response']['tts'] = dop[0]
     elif sessionStorage[user_id]['authorized']:
         # блок если наш пользователь авторизован, пытаем чего он хочет дальше
         logging.info(f'Request: {request.json!r}')
@@ -170,8 +170,6 @@ def rules(rul: str):
     # правила
     text = []
     with open(f'./data/usage_rules/text/{rules_to_en[rul]}.txt', encoding='utf-8') as file:
-        text.append(file.read())
-    with open(f'./data/usage_rules/tts/{rules_to_en[rul]}.txt', encoding='utf-8') as file:
         text.append(file.read())
     return text
 
