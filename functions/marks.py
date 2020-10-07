@@ -1,13 +1,19 @@
 from datetime import datetime, timedelta
+from dnevnik import DnevnikAPI
+from session import Session
 from .subjects import *
+from .phrases import *
 
 
-def new_marks(sessionStorage, user_id, subject, res):
+def new_marks(sessionStorage: Session, user_id, subject, res):
     """Последние выставленные оценки"""
-    marks = sessionStorage[user_id]['dnevnik'].get_last_marks(
-        person_id=sessionStorage[user_id]['person_id'],
-        group_id=sessionStorage[user_id]['edu_group']
-    )['marks']
+    user = sessionStorage.get_user(user_id)
+    dn = DnevnikAPI(token=user.token)
+    last_marks = dn.get_last_marks(
+        person_id=user.person_id,
+        group_id=user.edu_group
+    )
+    marks = last_marks['marks']
     dop = {}
     if subject is None:
         # нет конкретного предмета
@@ -16,11 +22,13 @@ def new_marks(sessionStorage, user_id, subject, res):
                 continue
             else:
                 if datetime.now().strftime('%Y-%m-%d') in i['date']:
-                    dop_subject = sessionStorage[user_id]['id-subject'][i['lesson']]
+                    dop_subject = dn.get_lesson(i['lesson'])['subject']['name']
                     if dop.get(dop_subject, False):
                         dop[dop_subject].append(i['value'])
                     else:
                         dop[dop_subject] = [i['value']]
+            if datetime.now().strftime('%Y-%m-%d') not in i['date']:
+                break
     else:
         # оценки по конкретному предмету
         for i in marks:
@@ -28,31 +36,33 @@ def new_marks(sessionStorage, user_id, subject, res):
                 continue
             else:
                 if datetime.now().strftime('%Y-%m-%d') in i['date']:
-                    dop_subject = sessionStorage[user_id]['id-subject'][i['lesson']]
+                    dop_subject = dn.get_lesson(i['lesson'])['subject']['name']
                     if not check_subjects(dop_subject, subject):
                         continue
                     if dop.get(dop_subject, False):
                         dop[dop_subject].append(i['value'])
                     else:
                         dop[dop_subject] = [i['value']]
+            if datetime.now().strftime('%Y-%m-%d') not in i['date']:
+                break
     if len(dop.keys()):
-        res['response']['text'] = 'Ваши оценки:\n'
-        res['response']['tts'] = 'Ваши оценки'
+        res['response']['text'] = res['response']['tts'] = get_random_phrases('new_marks')
         for i in dop.keys():
             res['response']['text'] += f'{i.capitalize()} - {", ".join(dop[i])}\n'
         return
     else:
-        res['response']['text'] = 'За сегодня ничего не поставили :('
-        res['response']['tts'] = 'За сегодня ничего не поставили'
+        res['response']['text'] = res['response']['tts'] = get_random_phrases('nothing_is_exposed')
         return
 
 
-def get_marks(sessionStorage, user_id, subject, res, year=None, month=None, day=None, days=None):
+def get_marks(sessionStorage: Session, user_id, subject, res, year=None, month=None, day=None, days=None):
     """Основная функция получения оценок на конкретную дату"""
+    user = sessionStorage.get_user(user_id)
+    dn = DnevnikAPI(token=user.token)
     if year is not None:
-        marks = sessionStorage[user_id]['dnevnik'].get_marks_from_to(
-            person_id=sessionStorage[user_id]['person_id'],
-            school_id=sessionStorage[user_id]['school_id'],
+        marks = dn.get_marks_from_to(
+            person_id=user.person_id,
+            school_id=user.school_id,
             from_time=datetime(year=year,
                                month=month,
                                day=day,
@@ -68,9 +78,9 @@ def get_marks(sessionStorage, user_id, subject, res, year=None, month=None, day=
         )
     elif month is not None:
         year = datetime.now().year
-        marks = sessionStorage[user_id]['dnevnik'].get_marks_from_to(
-            person_id=sessionStorage[user_id]['person_id'],
-            school_id=sessionStorage[user_id]['school_id'],
+        marks = dn.get_marks_from_to(
+            person_id=user.person_id,
+            school_id=user.school_id,
             from_time=datetime(year=year,
                                month=month,
                                day=day,
@@ -87,9 +97,9 @@ def get_marks(sessionStorage, user_id, subject, res, year=None, month=None, day=
     elif day is not None:
         year = datetime.now().year
         month = datetime.now().month
-        marks = sessionStorage[user_id]['dnevnik'].get_marks_from_to(
-            person_id=sessionStorage[user_id]['person_id'],
-            school_id=sessionStorage[user_id]['school_id'],
+        marks = dn.get_marks_from_to(
+            person_id=user.person_id,
+            school_id=user.school_id,
             from_time=datetime(year=year,
                                month=month,
                                day=day,
@@ -106,9 +116,9 @@ def get_marks(sessionStorage, user_id, subject, res, year=None, month=None, day=
     else:
         year = datetime.now().year
         month = datetime.now().month
-        marks = sessionStorage[user_id]['dnevnik'].get_marks_from_to(
-            person_id=sessionStorage[user_id]['person_id'],
-            school_id=sessionStorage[user_id]['school_id'],
+        marks = dn.get_marks_from_to(
+            person_id=user.person_id,
+            school_id=user.school_id,
             from_time=datetime(year=year,
                                month=month,
                                day=day,
@@ -127,8 +137,7 @@ def get_marks(sessionStorage, user_id, subject, res, year=None, month=None, day=
         if subject is None:
             # предмет не выбран
             for j in marks:
-                lesson = sessionStorage[user_id]['dnevnik'].get_lesson(
-                    j['lesson'])['subject']['name']
+                lesson = dn.get_lesson(j['lesson'])['subject']['name']
                 if dop.get(lesson, False):
                     dop[lesson].append(j['value'])
                 else:
@@ -136,22 +145,21 @@ def get_marks(sessionStorage, user_id, subject, res, year=None, month=None, day=
         else:
             # предмет выбран
             for j in marks:
-                lesson = sessionStorage[user_id]['dnevnik'].get_lesson(
-                    j['lesson'])['subject']['name']
+                lesson = dn.get_lesson(j['lesson'])['subject']['name']
                 if check_subjects(lesson, subject):
                     if dop.get(lesson, False):
                         dop[lesson].append(j['value'])
                     else:
                         dop[lesson] = [j['value']]
-        res['response']['text'] = 'Ваши оценки:\n'
+        dop_phrase = get_random_phrases('marks')
+        res['response']['text'] = dop_phrase
         for j in dop.keys():
             res['response'][
                 'text'] += f'{j.capitalize()} - {", ".join(dop[j])}\n'
-        res['response']['tts'] = 'ваши оценки'
+        res['response']['tts'] = dop_phrase
         return
     else:
-        res['response']['text'] = 'Оценок нет :('
-        res['response']['tts'] = 'оценок нет'
+        res['response']['text'] = res['response']['tts'] = get_random_phrases('no_marks')
         return
 
 
@@ -171,8 +179,7 @@ def old_marks(req, sessionStorage, user_id, subject, res):
                                   day=i['value']['day'])
                         return
                     else:
-                        res['response']['text'] = 'Оценок нет :('
-                        res['response']['tts'] = 'оценок нет'
+                        res['response']['text'] = res['response']['tts'] = get_random_phrases('no_marks')
                         return
             elif 'month_is_relative' in i['value'].keys():
                 if not i['value']['month_is_relative']:
@@ -198,16 +205,17 @@ def old_marks(req, sessionStorage, user_id, subject, res):
                               res=res,
                               days=i['value']['day'])
                     return
-    res['response']['text'] = 'Я вас не поняла :('
-    res['response']['tts'] = 'я вас не поняла'
+    res['response']['text'] = res['response']['tts'] = get_random_phrases('not_understand')
     return
 
 
-def final_marks(req, sessionStorage, user_id, subject, res):
+def final_marks(req, sessionStorage: Session, user_id, subject, res):
     """Финальные оценки"""
-    final = sessionStorage[user_id]['dnevnik'].get_person_final_marks(
-        person_id=sessionStorage[user_id]['person_id'],
-        group_id=sessionStorage[user_id]['edu_group']
+    user = sessionStorage.get_user(user_id)
+    dn = DnevnikAPI(token=user.token)
+    final = dn.get_person_final_marks(
+        person_id=user.person_id,
+        group_id=user.edu_group
     )
     user_text = req['request']['original_utterance']
     dict_marks = {}
@@ -218,7 +226,7 @@ def final_marks(req, sessionStorage, user_id, subject, res):
             if work is None:
                 continue
             if work['periodType'] == 'Year':
-                dict_marks[sessionStorage[user_id]['id-subject'][work['subjectId']]] = \
+                dict_marks[find_subject_name(final['subjects'], work['subjectId'])] = \
                     i['textValue']
     else:
         # показываем оценки за четверть или другой период обучения
@@ -233,29 +241,28 @@ def final_marks(req, sessionStorage, user_id, subject, res):
                 if work is None:
                     continue
                 if work['periodNumber'] != period and work['periodType'] != 'Year':
-                    dict_marks[sessionStorage[user_id]['id-subject'][work['subjectId']]] = \
+                    dict_marks[find_subject_name(final['subjects'], work['subjectId'])] = \
                         i['textValue']
         else:
-            res['response']['text'] = 'Оценок нет :('
-            res['response']['tts'] = 'оценок нет'
+            res['response']['text'], res['response']['tts'] = get_random_phrases('no_marks')
             return
+    dop_phrase = get_random_phrases('marks')
     if subject is None:
-        res['response']['text'] = 'Ваши оценки:\n'
+        res['response']['text'] = dop_phrase
         for j in dict_marks.keys():
             res['response']['text'] += \
                 f'{j.capitalize()} - {", ".join(dict_marks[j])}\n'
-        res['response']['tts'] = 'ваши оценки'
+        res['response']['tts'] = dop_phrase
         return
     else:
-        res['response']['text'] = 'Ваши оценки:\n'
+        res['response']['text'] = dop_phrase
         for j in dict_marks.keys():
             if check_subjects(j, subject):
                 res['response']['text'] += \
                     f'{j.capitalize()} - {", ".join(dict_marks[j])}\n'
-        res['response']['tts'] = 'ваши оценки'
-        if res['response']['text'] == 'Ваши оценки:\n':
-            res['response']['text'] = 'Я поняла предмет :('
-            res['response']['tts'] = 'я не поняла предмет'
+        res['response']['tts'] = dop_phrase
+        if res['response']['text'] == dop_phrase:
+            res['response']['text'] = res['response']['tts'] = get_random_phrases('not_understand_subject')
             return
         return
 
@@ -266,15 +273,24 @@ def marks(req, sessionStorage, user_id, res):
     if any(i in req['request']['original_utterance'].lower()
            for i in ['новые', 'последние']):
         # последние поставленные оценки
-        new_marks(sessionStorage=sessionStorage, user_id=user_id, subject=subject, res=res)
+        try:
+            new_marks(sessionStorage=sessionStorage, user_id=user_id, subject=subject, res=res)
+        except Exception as e:
+            res['response']['text'] = res['response']['tts'] = get_random_phrases('not_understand')
         return
     if any(i in req['request']['original_utterance'].lower()
-           for i in ['итог', 'год', 'финал', 'четверт', 'триместр']):
+           for i in ['итог', 'финал', 'четверт', 'триместр', 'семестр']):
         # итоговые оценки
-        final_marks(sessionStorage=sessionStorage, user_id=user_id, subject=subject, res=res, req=req)
+        try:
+            final_marks(sessionStorage=sessionStorage, user_id=user_id, subject=subject, res=res, req=req)
+        except Exception:
+            res['response']['text'] = res['response']['tts'] = get_random_phrases('not_understand')
         return
-    # выставвленные оценки
-    old_marks(req=req, sessionStorage=sessionStorage, user_id=user_id, subject=subject, res=res)
+    # выставленные оценки
+    try:
+        old_marks(req=req, sessionStorage=sessionStorage, user_id=user_id, subject=subject, res=res)
+    except Exception:
+        res['response']['text'] = res['response']['tts'] = get_random_phrases('not_understand')
     return
 
 

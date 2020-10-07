@@ -11,11 +11,14 @@ class DnevnikBase:
 
     # класс с базовыми функциями
 
-    def __init__(self, login: str = None, password: str = None, token: str = None):
+    def __init__(self, login=None, password=None, token=None):
         # создаем сессию для request
         self.session = requests.Session()
         self.host = "https://api.dnevnik.ru/v2/"
-        self.token = self.get_token(login, password)
+        if token is None:
+            self.token = self.get_token(login, password)
+        else:
+            self.token = token
         self.session.headers = {"Access-Token": self.token}
 
     def get_token(self, login, password):
@@ -104,10 +107,8 @@ class DnevnikAPI(DnevnikBase):
 
     # основной класс дневника
 
-    def __init__(self, login: str = None, password: str = None, token: str = None):
-        super().__init__(login, password, token)
-        self.login = login
-        self.password = password
+    def __init__(self, login=None, password=None, token=None):
+        super().__init__(login=login, password=password, token=token)
 
     def get_school(self):
         """Получение школы пользователя"""
@@ -216,9 +217,15 @@ class DnevnikAPI(DnevnikBase):
         return schedules
 
     def get_work_by_id(self, work_id: int):
+        """Получение работы на уроке по id"""
         work = self.get(f"works/{work_id}")
         return work
 
     def get_marks_by_id(self, mark_id: int):
+        """Получение оценки по ее id"""
         mark = self.get(f"marks/{mark_id}")
         return mark
+
+    def get_edu_group(self):
+        edu_group = self.get('users/me/context')['eduGroups'][0]['id']
+        return edu_group

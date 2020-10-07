@@ -1,8 +1,8 @@
 import pymorphy2
-from datetime import datetime
 
 
 def get_subject(text):
+    # TODO: нормальный определитель предмета
     """Получение предмета из контекста диалога"""
     if ' по ' in text:
         ind = text.split().index('по') + 1
@@ -63,3 +63,9 @@ def get_subjects(req, subject_id=False):
         for i in req:
             dop[i['name'].lower()] = i['id']
     return dop
+
+
+def find_subject_name(subjects, id):
+    for i in subjects:
+        if i['id'] == id:
+            return i['name']
