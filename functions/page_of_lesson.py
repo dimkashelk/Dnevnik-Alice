@@ -1,9 +1,13 @@
 from datetime import datetime, timedelta
 from .phrases import *
+from session import Session
+from dnevnik import DnevnikAPI
 
 
-def lesson(req, sessionStorage, user_id, res):
+def lesson(req, sessionStorage: Session, user_id, res):
     """Функция, отвечающая за формирование страницы урока, с основными данными"""
+    user = sessionStorage.get_user(user_id)
+    dn = DnevnikAPI(token=user.token)
     number_lesson, date = 0, datetime.now()
     # пытаемся дату урока
     date_fl = False
@@ -36,9 +40,9 @@ def lesson(req, sessionStorage, user_id, res):
         # если не нашли номер, то выдаем сообщение об ошибке
         res['response']['text'] = res['response']['tts'] = get_random_phrases('not_understand')
         return
-    schedules = sessionStorage[user_id]['dnevnik'].get_schedules(
-        sessionStorage[user_id]['person_id'],
-        sessionStorage[user_id]['edu_group'],
+    schedules = dn.get_schedules(
+        user.person_id,
+        user.edu_group,
         params={'startDate': (
             datetime(year=date.year,
                      month=date.month,
@@ -46,7 +50,7 @@ def lesson(req, sessionStorage, user_id, res):
                      hour=0,
                      minute=0,
                      second=0)),
-                'endDate': (
+            'endDate': (
                 datetime(year=date.year,
                          month=date.month,
                          day=date.day,
@@ -62,7 +66,7 @@ def lesson(req, sessionStorage, user_id, res):
         fl = False
         for i in schedules['days'][0]['lessons']:
             if i['number'] == number_lesson:
-                les = sessionStorage[user_id]['dnevnik'].get_lesson(i['id'])
+                les = dn.get_lesson(i['id'])
                 fl = True
                 place = i['place']
         if not fl:
@@ -75,7 +79,7 @@ def lesson(req, sessionStorage, user_id, res):
         if len(schedules['days'][0]['lessons']):
             # берем из расписания конретный урок
             try:
-                les = sessionStorage[user_id]['dnevnik'].get_lesson(
+                les = dn.get_lesson(
                     schedules['days'][0]['lessons'][number_lesson - 1]['id'])
             except IndexError:
                 res['response']['text'] = res['response']['tts'] = get_random_phrases('no_lesson')
@@ -86,7 +90,7 @@ def lesson(req, sessionStorage, user_id, res):
         place = get_place_of_lesson(number_lesson, schedules)
     teachers = []
     for i in les['teachers']:
-        person = sessionStorage[user_id]['dnevnik'].get_person(i)
+        person = dn.get_person(i)
         teachers.append(' '.join([person['lastName'],
                                   person['firstName'],
                                   person['middleName']]))
@@ -113,11 +117,13 @@ def lesson(req, sessionStorage, user_id, res):
     return
 
 
-def get_time_of_lesson(sessionStorage, user_id, date, number_lesson):
+def get_time_of_lesson(sessionStorage: Session, user_id, date, number_lesson):
     """Получение времени урока"""
-    schedules = sessionStorage[user_id]['dnevnik'].get_schedules(
-        sessionStorage[user_id]['person_id'],
-        sessionStorage[user_id]['edu_group'],
+    user = sessionStorage.get_user(user_id)
+    dn = DnevnikAPI(token=user.token)
+    schedules = dn.get_schedules(
+        user.person_id,
+        user.edu_group,
         params={'startDate': (
             datetime(year=date.year,
                      month=date.month,
@@ -125,7 +131,7 @@ def get_time_of_lesson(sessionStorage, user_id, date, number_lesson):
                      hour=0,
                      minute=0,
                      second=0)),
-                'endDate': (
+            'endDate': (
                 datetime(year=date.year,
                          month=date.month,
                          day=date.day,

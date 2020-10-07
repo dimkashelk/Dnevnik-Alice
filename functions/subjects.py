@@ -63,3 +63,9 @@ def get_subjects(req, subject_id=False):
         for i in req:
             dop[i['name'].lower()] = i['id']
     return dop
+
+
+def find_subject_name(subjects, id):
+    for i in subjects:
+        if i['id'] == id:
+            return i['name']

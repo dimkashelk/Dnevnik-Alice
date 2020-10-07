@@ -2,28 +2,24 @@ import subprocess
 from flask import Flask, request, send_file
 import logging
 import json
-from data.functions.const import *
-from data.functions.schedule import *
-from data.functions.homework import *
-from data.functions.marks import *
-from data.functions.authorization import *
-from data.functions.page_of_lesson import *
+from functions.schedule import *
+from functions.homework import *
+from functions.marks import *
+from functions.authorization import *
+from functions.page_of_lesson import *
+from functions.phrases import *
+from session import Session
 
 app = Flask(__name__)
 
 logging.basicConfig(level=logging.INFO, filename='app.log')
 
-sessionStorage = {}
+sessionStorage = Session()
 
 
 @app.route('/log')
 def get_log():
     return send_file('app.log')
-
-
-@app.route('/log/session')
-def get_file(filename):
-    return send_file('session.txt')
 
 
 @app.route('/update')
@@ -39,7 +35,7 @@ def main():
         'version': request.json['version'],
         'response': {
             'end_session': False
-    }
+        }
     }
     handle_dialog(request.json, response)
     logging.info(f'Response:  {response!r}')
@@ -50,31 +46,17 @@ def handle_dialog(req, res):
     # заменили user_id на application_id, по документации это одно и тоже
     # не user -> user_id, потому что пользователь может быть не авторизован в яндекс аккаунт.
     # теперь привязка будет к конкретному устройству.
-    user_id = req['session']['application']['application_id']
-    if req['session']['new'] and user_id not in sessionStorage.keys():
-        # поймали нового пользователя
-        new_user(res=res, user_id=user_id)
+    print('Новый запрос')
+    user_id = get_user_id(req)
+    if req['session']['new'] and sessionStorage.get_user(user_id) is None:
+        new_user(res=res, user_id=user_id, sessionStorage=sessionStorage)
         return
-    try:
-        authorized_user(res=res, req=req, user_id=user_id)
-    except KeyError:
-        # долбанные словари Python, удаляются без причины...
-        print(sessionStorage)
-        new_user(res=res, user_id=user_id)
-        res['response']['text'] = 'Краш сервака, короче не надо сейчас трогать навык :('
+    authorized_user(res=res, req=req, user_id=user_id)
 
 
-def new_user(res, user_id):
-    sessionStorage[user_id] = {
-        'authorized': False,
-    }
-    res['response']['text'] = 'Привет! Я - твой личный помощник с Дневником. ' \
-                              'Пожалуйста ознакомься с инструкцией, чтобы избежать ' \
-                              'недопонимай в разговоре'
-    res['response']['tts'] = 'привет я твой личный помощник с дневником ' \
-                             'пожалуйста ознакомься с инструкцией чтобы избежать ' \
-                             'недопоним+аний в разговоре'
-    return
+def new_user(res, user_id, sessionStorage):
+    res['response']['text'] = res['response']['tts'] = get_random_phrases('begin_phrase')
+    sessionStorage.insert_new_user(user_id)
 
 
 def authorized_user(res, req, user_id):
@@ -89,18 +71,16 @@ def authorized_user(res, req, user_id):
         res['response']['text'] = 'У меня очень много правил, но они все маленькие и простые. ' \
                                   'Из-за их количества пришлось разбить их на отдельные ' \
                                   'категории:\n' + dop
-        res['response']['tts'] = 'у меня очень много правил но они все маленькие и простые ' \
-                                 'изза их количества пришлось разб+ить их на отдельные катег+ории ' \
-                                 'просто ' \
-                                 'выберите из предложенного что вас больше всего интересует'
+        res['response']['tts'] = 'У меня очень много правил, но они все маленькие и простые. ' \
+                                 'Из-за их количества пришлось разбить их на отдельные ' \
+                                 'категории:\n' \
+                                 'просто выберите из предложенного, что вас больше всего интересует'
         res['response']['buttons'] = get_buttons('rules')
     elif req['request']['original_utterance'].lower() in rules_ru:
         # пользователь выбрал конкретный пункт правил
         logging.info(f'Request: {request.json!r}')
-        dop = rules(req['request']['original_utterance'].lower())
-        res['response']['text'] = dop[0]
-        res['response']['tts'] = dop[0]
-    elif sessionStorage[user_id]['authorized']:
+        res['response']['text'] = res['response']['tts'] = rules(req['request']['original_utterance'].lower())
+    elif sessionStorage.get_user(user_id).authorized:
         # блок если наш пользователь авторизован, пытаем чего он хочет дальше
         logging.info(f'Request: {request.json!r}')
         if any(i in req['request']['original_utterance'].lower()
@@ -129,18 +109,14 @@ def authorized_user(res, req, user_id):
         elif any(i in req['request']['original_utterance'].lower()
                  for i in ['выход', 'выйди']):
             # выходим из аккаунта
-            sessionStorage[user_id] = {
-                'authorized': False,
-            }
             res['response']['text'] = 'Я вышла из аккаунта, до скорой встречи'
             res['response']['tts'] = 'я вышла из аккаунта до скорой встречи'
             res['response']['end_session'] = True
             return
         # не поняла пользователя
-        res['response']['text'] = 'Я вас не поняла :('
-        res['response']['tts'] = 'я вас не поняла'
+        res['response']['text'] = res['response']['tts'] = get_random_phrases('not_understand')
         return
-    elif sessionStorage[user_id]['authorized'] is False and \
+    elif sessionStorage.get_token(user_id) is None and \
             len(req['request']['original_utterance'].split()) == 2 and \
             req['request']['original_utterance'].split()[0].lower() not in rules_ru and \
             req['request']['original_utterance'].split()[1].lower() not in rules_ru:
@@ -148,6 +124,7 @@ def authorized_user(res, req, user_id):
         authorization(req=req, sessionStorage=sessionStorage, user_id=user_id, res=res)
     else:
         # не поняла пользователя
+        print('Короче вот тут ты должен быть авторизован')
         logging.info(f'Request: {request.json!r}')
         res['response']['text'] = 'Я вас не поняла, пожалуйста авторизуйтесь :('
         res['response']['tts'] = 'я вас не поняла пожалуйста авторизуйтесь'
@@ -169,9 +146,15 @@ def get_buttons(obj: str):
 def rules(rul: str):
     # правила
     text = []
-    with open(f'./data/usage_rules/text/{rules_to_en[rul]}.txt', encoding='utf-8') as file:
+    with open(f'./usage_rules/text/{rules_to_en[rul]}.txt', encoding='utf-8') as file:
         text.append(file.read())
     return text
+
+
+def get_user_id(req):
+    if req['session'].get('user', False):
+        return req['session']['user']['user_id']
+    return req['session']['application']['application_id']
 
 
 if __name__ == '__main__':

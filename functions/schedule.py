@@ -1,8 +1,13 @@
 from datetime import datetime, timedelta
 from .phrases import *
+from dnevnik import DnevnikAPI
+from session import Session
 
-def get_schedule(sessionStorage, user_id, res, year=None, month=None, day=None):
+
+def get_schedule(sessionStorage: Session, user_id, res, year=None, month=None, day=None):
     """Получение расписания на дату"""
+    user = sessionStorage.get_user(user_id)
+    dn = DnevnikAPI(token=user.token)
     if year is None and month is None:
         date = datetime.now() + timedelta(days=day)
     elif year is None and month is not None:
@@ -13,9 +18,9 @@ def get_schedule(sessionStorage, user_id, res, year=None, month=None, day=None):
         date = datetime(year=year,
                         month=month,
                         day=day)
-    schedules = sessionStorage[user_id]['dnevnik'].get_schedules(
-        sessionStorage[user_id]['person_id'],
-        sessionStorage[user_id]['edu_group'],
+    schedules = dn.get_schedules(
+        user.person_id,
+        user.edu_group,
         params={'startDate': (
             datetime(year=date.year,
                      month=date.month,
@@ -23,7 +28,7 @@ def get_schedule(sessionStorage, user_id, res, year=None, month=None, day=None):
                      hour=0,
                      minute=0,
                      second=0)),
-                'endDate': (
+            'endDate': (
                 datetime(year=date.year,
                          month=date.month,
                          day=date.day,
@@ -34,7 +39,7 @@ def get_schedule(sessionStorage, user_id, res, year=None, month=None, day=None):
     if len(schedules['days'][0]['lessons']):
         res['response']['text'] = res['response']['tts'] = get_random_phrases('schedule')
         for j in schedules['days'][0]['lessons']:
-            dop = sessionStorage[user_id]['dnevnik'].get_lesson(j['id'])
+            dop = dn.get_lesson(j['id'])
             res['response']['text'] += j['hours'] + ' ' + dop['subject']['name'] + '\n'
         return
     else:
@@ -42,7 +47,7 @@ def get_schedule(sessionStorage, user_id, res, year=None, month=None, day=None):
         return
 
 
-def schedule(sessionStorage, req, user_id, res):
+def schedule(sessionStorage: Session, req, user_id, res):
     """Расписание"""
     try:
         for i in req['request']['nlu']['entities']:
