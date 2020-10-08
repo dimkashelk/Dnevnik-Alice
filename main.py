@@ -46,7 +46,6 @@ def handle_dialog(req, res):
     # заменили user_id на application_id, по документации это одно и тоже
     # не user -> user_id, потому что пользователь может быть не авторизован в яндекс аккаунт.
     # теперь привязка будет к конкретному устройству.
-    print('Новый запрос')
     user_id = get_user_id(req)
     if req['session']['new'] and sessionStorage.get_user(user_id) is None:
         new_user(res=res, user_id=user_id, sessionStorage=sessionStorage)

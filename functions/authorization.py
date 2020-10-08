@@ -16,7 +16,6 @@ def authorization(req: dict, sessionStorage: Session, user_id: str, res: dict):
         return
     user = sessionStorage.get_user(user_id)
     # сохраняем токен
-    print(dn.token)
     user.token = dn.token
     # теперь пользователь авторизован
     user.authorized = True
