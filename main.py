@@ -51,7 +51,8 @@ def main():
         'session': request.json['session'],
         'version': request.json['version'],
         'response': {
-            'end_session': False
+            'end_session': False,
+            'buttons': get_buttons('buttons', user_id=get_user_id(request.json))
         }
     }
     handle_dialog(request.json, response)
@@ -87,13 +88,8 @@ def authorized_user(res, req, user_id):
         for i, val in enumerate(rules_ru):
             dop += f'{i + 1}) {val.capitalize()}\n'
         dop = dop.strip()
-        res['response']['text'] = 'У меня очень много правил, но они все маленькие и простые. ' \
-                                  'Из-за их количества пришлось разбить их на отдельные ' \
-                                  'категории:\n' + dop
-        res['response']['tts'] = 'У меня очень много правил, но они все маленькие и простые. ' \
-                                 'Из-за их количества пришлось разбить их на отдельные ' \
-                                 'категории:\n' \
-                                 'просто выберите из предложенного, что вас больше всего интересует'
+        res['response']['text'] = 'У меня очень много правил, но они все маленькие и простые.\n' + dop
+        res['response']['tts'] = 'У меня очень много правил, но они все маленькие и простые.'
         res['response']['buttons'] = get_buttons('rules')
     elif req['request']['original_utterance'].lower() in rules_ru:
         # пользователь выбрал конкретный пункт правил
@@ -128,8 +124,7 @@ def authorized_user(res, req, user_id):
         elif any(i in req['request']['original_utterance'].lower()
                  for i in ['выход', 'выйди']):
             # выходим из аккаунта
-            res['response']['text'] = 'Я вышла из аккаунта, до скорой встречи'
-            res['response']['tts'] = 'я вышла из аккаунта до скорой встречи'
+            res['response']['text'] = res['response']['tts'] = get_random_phrases('end_phrase')
             res['response']['end_session'] = True
             return
         # не поняла пользователя
@@ -137,31 +132,38 @@ def authorized_user(res, req, user_id):
         return
     elif req['request']['original_utterance'] == 'Авторизация':
         # авторизация по логину и паролю
-        res['response']['text'] = 'Авторизируйтесь, я жду'
-        res['response']['tts'] = 'Авторизируйтесь, я жду'
+        res['response']['text'] = res['response']['tts'] = get_random_phrases('authorization')
     else:
         # не поняла пользователя
         logging.info(f'Request: {request.json!r}')
-        res['response']['text'] = 'Я вас не поняла, пожалуйста авторизуйтесь :('
-        res['response']['tts'] = 'я вас не поняла пожалуйста авторизуйтесь'
+        res['response']['text'] = res['response']['tts'] = get_random_phrases('not_authorized')
         res['response']['buttons'] = [{
             "title": "Авторизация",
             "url": f"https://login.dnevnik.ru/oauth2?"
                    f"response_type=code&"
                    f"client_id=1d7bd105-4cd1-4f6c-9ecc-394e400b53bd&"
                    f"scope=CommonInfo,ContactInfo,FriendsAndRelatives,EducationalInfo,SocialInfo,Files,Wall,Messages&"
-                   f"redirect_uri=https://00c3aa623ea5.ngrok.io/authorization&"
+                   f"redirect_uri=https://7d29eccdbbf3.ngrok.io/authorization&"
                    f"state={user_id}",
             "hide": False
         }]
         return
 
 
-def get_buttons(obj: str):
+def get_buttons(obj: str, user_id=0):
     # формирование кнопок
     title = []
     if obj == 'rules':
         for i in rules_ru:
+            title.append({
+                "title": i.capitalize(),
+                "hide": True
+            })
+    elif obj == 'buttons':
+        user = sessionStorage.get_user(user_id)
+        if not user.authorized:
+            return
+        for i in get_random_phrases_for_buttons(user.authorized, user_id=user_id):
             title.append({
                 "title": i.capitalize(),
                 "hide": True
@@ -171,10 +173,8 @@ def get_buttons(obj: str):
 
 def rules(rul: str):
     # правила
-    text = []
-    with open(f'./usage_rules/text/{rules_to_en[rul]}.txt', encoding='utf-8') as file:
-        text.append(file.read())
-    return text[0]
+    rul = rules_to_en[rul]
+    return get_rules(rul)
 
 
 def get_user_id(req):
