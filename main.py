@@ -52,7 +52,6 @@ def main():
         'version': request.json['version'],
         'response': {
             'end_session': False,
-            'buttons': get_buttons('buttons', user_id=get_user_id(request.json))
         }
     }
     handle_dialog(request.json, response)
@@ -68,6 +67,7 @@ def handle_dialog(req, res):
     if req['session']['new'] and sessionStorage.get_user(user_id) is None:
         new_user(res=res, user_id=user_id, sessionStorage=sessionStorage)
         return
+    res['response']['buttons'] = get_buttons('buttons', user_id=get_user_id(request.json))
     if req['session']['new']:
         res['response']['text'] = res['response']['tts'] = get_random_phrases('user_return')
         return
