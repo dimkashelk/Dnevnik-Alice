@@ -67,6 +67,9 @@ def handle_dialog(req, res):
     if req['session']['new'] and sessionStorage.get_user(user_id) is None:
         new_user(res=res, user_id=user_id, sessionStorage=sessionStorage)
         return
+    if req['session']['new']:
+        res['response']['text'] = res['response']['tts'] = get_random_phrases('user_return')
+        return
     authorized_user(res=res, req=req, user_id=user_id)
 
 
