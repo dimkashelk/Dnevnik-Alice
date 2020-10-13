@@ -4,16 +4,12 @@ from session import Session
 from .phrases import get_random_phrases
 
 
-def authorization(req: dict, sessionStorage: Session, user_id: str, res: dict):
+def authorization(sessionStorage: Session, user_id: str, token: str):
     """Авторизация пользователя по логину и паролю"""
-    dop = req['request']['original_utterance'].split()
     try:
-        dn = DnevnikAPI(login=dop[0],
-                        password=dop[1])
+        dn = DnevnikAPI(token=token)
     except DnevnikError as e:
-        res['response']['text'] = str(e)
-        res['response']['tts'] = str(e).lower()
-        return
+        return str(e)
     user = sessionStorage.get_user(user_id)
     # сохраняем токен
     user.token = dn.token
@@ -26,5 +22,4 @@ def authorization(req: dict, sessionStorage: Session, user_id: str, res: dict):
     # получение персонального id
     user.person_id = dn.get_info_about_me()['personId']
     sessionStorage.commit()
-    res['response']['text'] = res['response']['tts'] = get_random_phrases('authorization')
-    return
+    return 'Success'
