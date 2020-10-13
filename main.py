@@ -5,6 +5,7 @@ import json
 from functions.schedule import *
 from functions.homework import *
 from functions.marks import *
+from requests import post
 from functions.authorization import *
 from functions.page_of_lesson import *
 from functions.phrases import *
@@ -28,13 +29,30 @@ def update():
     return 'request accepted'
 
 
+@app.route('/authorization')
+def authorization_url():
+    code = request.args.get('code')
+    state = request.args.get('state')
+    token = post('https://api.dnevnik.ru/v2/authorizations', data={
+        "code": code,
+        "client_id": "1d7bd105-4cd1-4f6c-9ecc-394e400b53bd",
+        "client_secret": "5dcb5237-b5d3-406b-8fee-4441c3a66c99",
+        "grant_type": "AuthorizationCode"
+    })
+    access_token = token.json()['accessToken']
+    authorization(sessionStorage=sessionStorage, user_id=state, token=access_token)
+    # необходимо придумать что делать с временем работы токена, тобишь как лучше обновить через 30 дней
+    return 'Success'
+
+
 @app.route('/', methods=['POST'])
 def main():
     response = {
         'session': request.json['session'],
         'version': request.json['version'],
         'response': {
-            'end_session': False
+            'end_session': False,
+            'buttons': get_buttons('buttons', user_id=get_user_id(request.json))
         }
     }
     handle_dialog(request.json, response)
@@ -49,6 +67,9 @@ def handle_dialog(req, res):
     user_id = get_user_id(req)
     if req['session']['new'] and sessionStorage.get_user(user_id) is None:
         new_user(res=res, user_id=user_id, sessionStorage=sessionStorage)
+        return
+    if req['session']['new']:
+        res['response']['text'] = res['response']['tts'] = get_random_phrases('user_return')
         return
     authorized_user(res=res, req=req, user_id=user_id)
 
@@ -67,13 +88,8 @@ def authorized_user(res, req, user_id):
         for i, val in enumerate(rules_ru):
             dop += f'{i + 1}) {val.capitalize()}\n'
         dop = dop.strip()
-        res['response']['text'] = 'У меня очень много правил, но они все маленькие и простые. ' \
-                                  'Из-за их количества пришлось разбить их на отдельные ' \
-                                  'категории:\n' + dop
-        res['response']['tts'] = 'У меня очень много правил, но они все маленькие и простые. ' \
-                                 'Из-за их количества пришлось разбить их на отдельные ' \
-                                 'категории:\n' \
-                                 'просто выберите из предложенного, что вас больше всего интересует'
+        res['response']['text'] = 'У меня очень много правил, но они все маленькие и простые.\n' + dop
+        res['response']['tts'] = 'У меня очень много правил, но они все маленькие и простые.'
         res['response']['buttons'] = get_buttons('rules')
     elif req['request']['original_utterance'].lower() in rules_ru:
         # пользователь выбрал конкретный пункт правил
@@ -108,33 +124,46 @@ def authorized_user(res, req, user_id):
         elif any(i in req['request']['original_utterance'].lower()
                  for i in ['выход', 'выйди']):
             # выходим из аккаунта
-            res['response']['text'] = 'Я вышла из аккаунта, до скорой встречи'
-            res['response']['tts'] = 'я вышла из аккаунта до скорой встречи'
+            res['response']['text'] = res['response']['tts'] = get_random_phrases('end_phrase')
             res['response']['end_session'] = True
             return
         # не поняла пользователя
         res['response']['text'] = res['response']['tts'] = get_random_phrases('not_understand')
         return
-    elif sessionStorage.get_token(user_id) is None and \
-            len(req['request']['original_utterance'].split()) == 2 and \
-            req['request']['original_utterance'].split()[0].lower() not in rules_ru and \
-            req['request']['original_utterance'].split()[1].lower() not in rules_ru:
+    elif req['request']['original_utterance'] == 'Авторизация':
         # авторизация по логину и паролю
-        authorization(req=req, sessionStorage=sessionStorage, user_id=user_id, res=res)
+        res['response']['text'] = res['response']['tts'] = get_random_phrases('authorization')
     else:
         # не поняла пользователя
-        print('Короче вот тут ты должен быть авторизован')
         logging.info(f'Request: {request.json!r}')
-        res['response']['text'] = 'Я вас не поняла, пожалуйста авторизуйтесь :('
-        res['response']['tts'] = 'я вас не поняла пожалуйста авторизуйтесь'
+        res['response']['text'] = res['response']['tts'] = get_random_phrases('not_authorized')
+        res['response']['buttons'] = [{
+            "title": "Авторизация",
+            "url": f"https://login.dnevnik.ru/oauth2?"
+                   f"response_type=code&"
+                   f"client_id=1d7bd105-4cd1-4f6c-9ecc-394e400b53bd&"
+                   f"scope=CommonInfo,ContactInfo,FriendsAndRelatives,EducationalInfo,SocialInfo,Files,Wall,Messages&"
+                   f"redirect_uri=https://7d29eccdbbf3.ngrok.io/authorization&"
+                   f"state={user_id}",
+            "hide": False
+        }]
         return
 
 
-def get_buttons(obj: str):
+def get_buttons(obj: str, user_id=0):
     # формирование кнопок
     title = []
     if obj == 'rules':
         for i in rules_ru:
+            title.append({
+                "title": i.capitalize(),
+                "hide": True
+            })
+    elif obj == 'buttons':
+        user = sessionStorage.get_user(user_id)
+        if not user.authorized:
+            return
+        for i in get_random_phrases_for_buttons(user.authorized, user_id=user_id):
             title.append({
                 "title": i.capitalize(),
                 "hide": True
@@ -144,10 +173,8 @@ def get_buttons(obj: str):
 
 def rules(rul: str):
     # правила
-    text = []
-    with open(f'./usage_rules/text/{rules_to_en[rul]}.txt', encoding='utf-8') as file:
-        text.append(file.read())
-    return text
+    rul = rules_to_en[rul]
+    return get_rules(rul)
 
 
 def get_user_id(req):
