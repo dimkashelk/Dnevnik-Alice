@@ -40,7 +40,7 @@ def get_schedule(sessionStorage: Session, user_id, res, year=None, month=None, d
         res['response']['text'] = res['response']['tts'] = get_random_phrases('schedule')
         for j in schedules['days'][0]['lessons']:
             dop = dn.get_lesson(j['id'])
-            res['response']['text'] += j['hours'] + ' ' + dop['subject']['name'] + '\n'
+            res['response']['text'] += j['number'] + ' ' + j['hours'] + ' ' + dop['subject']['name'] + '\n'
         return
     else:
         res['response']['text'] = res['response']['tts'] = get_random_phrases('schedule_is_not_available')

@@ -79,8 +79,7 @@ def lesson(req, sessionStorage: Session, user_id, res):
         if len(schedules['days'][0]['lessons']):
             # берем из расписания конретный урок
             try:
-                les = dn.get_lesson(
-                    schedules['days'][0]['lessons'][number_lesson - 1]['id'])
+                les = dn.get_lesson(get_lesson_by_number(schedules['days'][0]['lessons'], number_lesson)['id'])
             except IndexError:
                 res['response']['text'] = res['response']['tts'] = get_random_phrases('no_lesson')
                 return
@@ -107,7 +106,7 @@ def lesson(req, sessionStorage: Session, user_id, res):
                                             day=day),
                               number_lesson=number_lesson)
     res['response']['text'] = f"Время: {time}\n" \
-                              f"Кабинет: {place}\n" \
+                              f"Кабинет: {place if place is not None else ''}\n" \
                               f"Урок: {les['subject']['name']}\n" \
                               f"{'Учителя' if len(teachers) > 1 else 'Учитель'}: {'; '.join(teachers)}\n" \
                               f"Тема занятий: {les['title']}\n" \
@@ -162,3 +161,9 @@ def get_place_of_lesson(number_lesson, schedules):
         if i['number'] == number_lesson:
             return i['place']
     return False
+
+
+def get_lesson_by_number(lessons, number_lesson):
+    for i in lessons:
+        if i['number'] == number_lesson:
+            return i
