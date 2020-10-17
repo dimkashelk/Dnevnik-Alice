@@ -76,6 +76,16 @@ def handle_dialog(req, res):
 
 def new_user(res, user_id, sessionStorage):
     res['response']['text'] = res['response']['tts'] = get_random_phrases('begin_phrase')
+    res['response']['buttons'] = [{
+        "title": "Авторизация",
+        "url": f"https://login.dnevnik.ru/oauth2?"
+               f"response_type=code&"
+               f"client_id=1d7bd105-4cd1-4f6c-9ecc-394e400b53bd&"
+               f"scope=CommonInfo,ContactInfo,FriendsAndRelatives,EducationalInfo,SocialInfo,Files,Wall,Messages&"
+               f"redirect_uri=https://alice.slezins.ru/authorization&"
+               f"state={user_id}",
+        "hide": False
+    }]
     sessionStorage.insert_new_user(user_id)
 
 
@@ -143,7 +153,7 @@ def authorized_user(res, req, user_id):
                    f"response_type=code&"
                    f"client_id=1d7bd105-4cd1-4f6c-9ecc-394e400b53bd&"
                    f"scope=CommonInfo,ContactInfo,FriendsAndRelatives,EducationalInfo,SocialInfo,Files,Wall,Messages&"
-                   f"redirect_uri=https://7d29eccdbbf3.ngrok.io/authorization&"
+                   f"redirect_uri=https://alice.slezins.ru/authorization&"
                    f"state={user_id}",
             "hide": False
         }]
