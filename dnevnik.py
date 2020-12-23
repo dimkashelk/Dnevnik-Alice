@@ -229,3 +229,13 @@ class DnevnikAPI(DnevnikBase):
     def get_edu_group(self):
         edu_group = self.get('users/me/context')['eduGroups'][0]['id']
         return edu_group
+
+    def update_token(self):
+        token = self.post('https://api.dnevnik.ru/v2/authorizations', data={
+            "code": self.token,
+            "client_id": "1d7bd105-4cd1-4f6c-9ecc-394e400b53bd",
+            "client_secret": "5dcb5237-b5d3-406b-8fee-4441c3a66c99",
+            "grant_type": "AuthorizationCode"
+        })
+        self.token = token['accessToken']
+        return token['accessToken']

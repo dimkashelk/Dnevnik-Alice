@@ -2,6 +2,7 @@ from dnevnik import DnevnikAPI, DnevnikError
 from .subjects import get_subjects
 from session import Session
 from .phrases import get_random_phrases
+from pprint import pprint
 
 
 def authorization(sessionStorage: Session, user_id: str, token: str):
@@ -15,7 +16,9 @@ def authorization(sessionStorage: Session, user_id: str, token: str):
     user.token = dn.token
     # теперь пользователь авторизован
     user.authorized = True
+    sessionStorage.commit()
     # берем id школы
+    pprint(dn.get_school())
     user.school_id = dn.get_school()[0]['id']
     # получаем id образовательной группы
     user.edu_group = dn.get_edu_group()

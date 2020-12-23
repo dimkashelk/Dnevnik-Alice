@@ -10,6 +10,9 @@ from functions.authorization import *
 from functions.page_of_lesson import *
 from functions.phrases import *
 from session import Session
+from pprint import pprint
+import pymorphy2
+from datetime import date
 
 app = Flask(__name__)
 
@@ -41,7 +44,6 @@ def authorization_url():
     })
     access_token = token.json()['accessToken']
     authorization(sessionStorage=sessionStorage, user_id=state, token=access_token)
-    # необходимо придумать что делать с временем работы токена, тобишь как лучше обновить через 30 дней
     return 'Success'
 
 
@@ -52,7 +54,6 @@ def main():
         'version': request.json['version'],
         'response': {
             'end_session': False,
-            'buttons': get_buttons('buttons', user_id=get_user_id(request.json))
         }
     }
     handle_dialog(request.json, response)
@@ -68,6 +69,7 @@ def handle_dialog(req, res):
     if req['session']['new'] and sessionStorage.get_user(user_id) is None:
         new_user(res=res, user_id=user_id, sessionStorage=sessionStorage)
         return
+    # update_access_token(user_id)
     if req['session']['new']:
         res['response']['text'] = res['response']['tts'] = get_random_phrases('user_return')
         return
@@ -76,10 +78,12 @@ def handle_dialog(req, res):
 
 def new_user(res, user_id, sessionStorage):
     res['response']['text'] = res['response']['tts'] = get_random_phrases('begin_phrase')
+    res['response']['buttons'] = get_buttons('authorization', user_id=user_id)
     sessionStorage.insert_new_user(user_id)
 
 
 def authorized_user(res, req, user_id):
+    res['response']['buttons'] = get_buttons('buttons', user_id=get_user_id(request.json))
     if any(i in req['request']['original_utterance'].lower()
            for i in ['инструкц', 'правила']):
         # пользователь просит инструкцию
@@ -98,34 +102,33 @@ def authorized_user(res, req, user_id):
     elif sessionStorage.get_user(user_id).authorized:
         # блок если наш пользователь авторизован, пытаем чего он хочет дальше
         logging.info(f'Request: {request.json!r}')
-        if any(i in req['request']['original_utterance'].lower()
-               for i in ['расписани']):
+        dop = what_user_want(req)
+        if dop == 'schedule':
             # пользователь требует расписание
             schedule(req=req, user_id=user_id, res=res, sessionStorage=sessionStorage)
             return
-        elif any(i in req['request']['original_utterance'].lower()
-                 for i in ['урок', 'кабинет']):
+        elif dop == 'page_of_lesson':
             # пользователь требует конкретный урок
             lesson(req=req,
                    sessionStorage=sessionStorage,
                    user_id=user_id,
                    res=res)
             return
-        elif any(i in req['request']['original_utterance'].lower()
-                 for i in ['дз', 'домашк', 'домашнее задание', 'задали', 'задание по']):
+        elif dop == 'homework':
             # пользователь требует свою домашку
             homework(req=req, sessionStorage=sessionStorage, user_id=user_id, res=res)
             return
-        elif any(i in req['request']['original_utterance'].lower()
-                 for i in ['оценки', 'поставили']):
+        elif dop == 'marks':
             # пользователь хочет увидеть оценки
             marks(req=req, sessionStorage=sessionStorage, user_id=user_id, res=res)
             return
-        elif any(i in req['request']['original_utterance'].lower()
-                 for i in ['выход', 'выйди']):
+        elif dop == 'go_out':
             # выходим из аккаунта
             res['response']['text'] = res['response']['tts'] = get_random_phrases('end_phrase')
             res['response']['end_session'] = True
+            return
+        elif dop == 'skills':
+            res['response']['text'] = res['response']['tts'] = get_random_phrases('skills')
             return
         # не поняла пользователя
         res['response']['text'] = res['response']['tts'] = get_random_phrases('not_understand')
@@ -137,16 +140,7 @@ def authorized_user(res, req, user_id):
         # не поняла пользователя
         logging.info(f'Request: {request.json!r}')
         res['response']['text'] = res['response']['tts'] = get_random_phrases('not_authorized')
-        res['response']['buttons'] = [{
-            "title": "Авторизация",
-            "url": f"https://login.dnevnik.ru/oauth2?"
-                   f"response_type=code&"
-                   f"client_id=1d7bd105-4cd1-4f6c-9ecc-394e400b53bd&"
-                   f"scope=CommonInfo,ContactInfo,FriendsAndRelatives,EducationalInfo,SocialInfo,Files,Wall,Messages&"
-                   f"redirect_uri=https://7d29eccdbbf3.ngrok.io/authorization&"
-                   f"state={user_id}",
-            "hide": False
-        }]
+        res['response']['buttons'] = get_buttons('authorization', user_id=user_id)
         return
 
 
@@ -168,6 +162,17 @@ def get_buttons(obj: str, user_id=0):
                 "title": i.capitalize(),
                 "hide": True
             })
+    elif obj == 'authorization':
+        title.append({
+            "title": "Авторизация",
+            "url": f"https://login.dnevnik.ru/oauth2?"
+                   f"response_type=code&"
+                   f"client_id=1d7bd105-4cd1-4f6c-9ecc-394e400b53bd&"
+                   f"scope=CommonInfo,ContactInfo,FriendsAndRelatives,EducationalInfo,SocialInfo,Files,Wall,Messages&"
+                   f"redirect_uri=https://b9bc09d90b99.ngrok.io/authorization&"
+                   f"state={user_id}",
+            "hide": False
+        })
     return title
 
 
@@ -181,6 +186,41 @@ def get_user_id(req):
     if req['session'].get('user', False):
         return req['session']['user']['user_id']
     return req['session']['application']['application_id']
+
+
+def what_user_want(req):
+    tokens = req['request']['nlu']['tokens']
+    morph = pymorphy2.MorphAnalyzer()
+    for i, v in enumerate(tokens):
+        tokens[i] = morph.parse(v)[0].normal_form
+    if any(i in tokens for i in
+           ['расписание']):
+        return 'schedule'
+    elif any(i in tokens for i in
+             ['урок', 'кабинет']):
+        return 'page_of_lesson'
+    elif any(i in tokens for i in
+             ['дз', 'домашка', 'домашний', 'задание', 'задать']):
+        return 'homework'
+    elif any(i in tokens for i in
+             ['оценка', 'поставить']):
+        return 'marks'
+    elif any(i in tokens for i in
+             ['выход', 'выйти']):
+        return 'go_out'
+    elif any(i in tokens for i in
+             ['уметь', 'мочь']):
+        return 'skills'
+    pprint(req)
+    print(tokens)
+
+
+def update_access_token(user_id):
+    user = sessionStorage.get_user(user_id)
+    date_token = date(*map(int, user.date_token.split('-')))
+    if (date.today() - date_token).days > 20:
+        dn = DnevnikAPI(token=user.token)
+        dn.update_token()
 
 
 if __name__ == '__main__':

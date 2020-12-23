@@ -3,12 +3,12 @@ from .subjects import *
 from .phrases import *
 from dnevnik import DnevnikAPI
 from session import Session
+from pprint import pprint
 
 
 def get_homework(sessionStorage: Session, user_id, res, subject, days=None, months=None, years=None):
     """Получение домашнего задания по конретной дате"""
     user = sessionStorage.get_user(user_id)
-    user.token
     dn = DnevnikAPI(token=user.token)
     now = datetime.now()
     year, month, day = now.year, now.month, now.day
@@ -100,5 +100,9 @@ def homework(req, sessionStorage, user_id, res):
                     return
     except Exception as e:
         print(e)
-    res['response']['text'] = res['response']['tts'] = get_random_phrases('not_understand')
+    get_homework(sessionStorage=sessionStorage,
+                 user_id=user_id,
+                 res=res,
+                 subject=subject,
+                 days=1)
     return

@@ -24,11 +24,11 @@ def get_random_phrases_for_buttons(authorized, user_id=0):
         }]
     type_phrases = list(text_phrases['text_for_buttons'].keys())
     ans = []
-    for i in type_phrases[:randint(1, len(type_phrases))]:
+    for i in type_phrases:
         for j in range(2):
             dop = text_phrases['text_for_buttons'][i][randint(0, len(text_phrases['text_for_buttons'][i]) - 1)]
             while dop in ans:
                 dop = text_phrases['text_for_buttons'][i][randint(0, len(text_phrases['text_for_buttons'][i]) - 1)]
             ans.append(dop)
     shuffle(ans)
-    return ans
+    return ans[:randint(1, 7)]
