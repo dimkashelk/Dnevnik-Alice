@@ -1,7 +1,5 @@
-from dnevnik import DnevnikAPI, DnevnikError
-from .subjects import get_subjects
-from session import Session
-from .phrases import get_random_phrases
+from AliceSkill.dnevnik import DnevnikAPI, DnevnikError
+from AliceSkill.session import Session
 from pprint import pprint
 
 

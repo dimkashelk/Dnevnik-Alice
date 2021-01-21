@@ -30,9 +30,7 @@ class DnevnikBase:
                 "client_secret": "5dcb5237-b5d3-406b-8fee-4441c3a66c99",
                 "username": login,
                 "password": password,
-                "scope": "Schools,Relatives,EduGroups,Lessons,marks,EduWorks,Avatar,"
-                         "EducationalInfo,CommonInfo,ContactInfo,FriendsAndRelatives,"
-                         "Files,Wall,Messages",
+                "scope": "CommonInfo,ContactInfo,FriendsAndRelatives,EducationalInfo,SocialInfo,Files,Wall,Messages",
             },
         )
         json_token = token.json()

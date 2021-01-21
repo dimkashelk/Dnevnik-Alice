@@ -1,6 +1,6 @@
 from datetime import datetime, timedelta
-from dnevnik import DnevnikAPI
-from session import Session
+from AliceSkill.dnevnik import DnevnikAPI
+from AliceSkill.session import Session
 from .subjects import *
 from .phrases import *
 

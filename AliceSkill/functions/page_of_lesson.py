@@ -1,7 +1,7 @@
 from datetime import datetime, timedelta
 from .phrases import *
-from session import Session
-from dnevnik import DnevnikAPI
+from AliceSkill.session import Session
+from AliceSkill.dnevnik import DnevnikAPI
 
 
 def lesson(req, sessionStorage: Session, user_id, res):
