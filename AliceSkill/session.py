@@ -1,4 +1,4 @@
-from data import db_session, users
+from AliceSkill.data import users, db_session
 
 
 class Session:

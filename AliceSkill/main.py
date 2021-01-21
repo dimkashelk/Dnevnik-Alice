@@ -2,25 +2,25 @@ import subprocess
 from flask import Flask, request, send_file
 import logging
 import json
-from functions.schedule import *
-from functions.homework import *
-from functions.marks import *
+from AliceSkill.functions.schedule import *
+from AliceSkill.functions.homework import *
+from AliceSkill.functions.marks import *
 from requests import post
-from functions.authorization import *
-from functions.page_of_lesson import *
-from functions.phrases import *
-from session import Session
+from AliceSkill.functions.authorization import *
+from AliceSkill.functions.page_of_lesson import *
+from AliceSkill.functions.phrases import *
+from AliceSkill.session import Session
 
 app = Flask(__name__)
 
-logging.basicConfig(level=logging.INFO, filename='app.log')
+logging.basicConfig(level=logging.INFO, filename='../app.log')
 
 sessionStorage = Session()
 
 
 @app.route('/log')
 def get_log():
-    return send_file('app.log')
+    return send_file('../app.log')
 
 
 @app.route('/update')

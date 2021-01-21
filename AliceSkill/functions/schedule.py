@@ -1,7 +1,7 @@
 from datetime import datetime, timedelta
 from .phrases import *
-from dnevnik import DnevnikAPI
-from session import Session
+from AliceSkill.dnevnik import DnevnikAPI
+from AliceSkill.session import Session
 
 
 def get_schedule(sessionStorage: Session, user_id, res, year=None, month=None, day=None):

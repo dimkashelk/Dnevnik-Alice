@@ -1,8 +1,8 @@
 from datetime import datetime, timedelta
 from .subjects import *
 from .phrases import *
-from dnevnik import DnevnikAPI
-from session import Session
+from AliceSkill.dnevnik import DnevnikAPI
+from AliceSkill.session import Session
 
 
 def get_homework(sessionStorage: Session, user_id, res, subject, days=None, months=None, years=None):
